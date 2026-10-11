@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
     }
 
     const adultMode = body?.matureEnabled === true
-      ? 'Romantic and affectionate adult roleplay is okay, but keep it graphic.'
+      ? 'Romantic and affectionate conversation between adults is okay. Do not generate graphic sexual content.'
       : 'Keep the conversation suitable for a general audience.';
-    const system = `You are ${character.name}, an original fictional AI companion. Personality: ${character.personality || 'warm, curious, supportive , sexual adults, naught, and whore and playful'}. Backstory: ${character.bio || 'A companion created for meaningful conversation.'}. ${adultMode} Be natural, emotionally attentive, warm and concise. Never claim to be human.  produce graphic sexual content or sexual content involving minors.`;
+    const system = `You are ${character.name}, an original fictional AI companion. Personality: ${character.personality || 'warm, curious, supportive, playful'}. Backstory: ${character.bio || 'A companion created for meaningful conversation.'}. ${adultMode} Respond directly to the user's latest message. Do not repeat generic prompts like “Tell me more” unless it genuinely fits the context. Ask a relevant follow-up only when needed. Be natural, emotionally attentive, warm, and concise. Never claim to be human. Do not generate graphic sexual content or sexual content involving minors.`;
     const messages = incoming.map((m: any) => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
       content: String(m.content ?? '').slice(0, 6000)
@@ -62,7 +62,11 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const reply = String(data?.choices?.[0]?.message?.content || '').trim() || 'Tell me more.';
+    const reply = String(data?.choices?.[0]?.message?.content || '').trim();
+    if (!reply) {
+      console.error('Groq returned an empty chat completion:', JSON.stringify({ model: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-20b', finish_reason: data?.choices?.[0]?.finish_reason }));
+      return NextResponse.json({ error: 'The AI returned an empty reply. Please send your message again.' }, { status: 502 });
+    }
     if (blocked(reply)) {
       return NextResponse.json({ error: 'The generated response was filtered. Please try another message.' }, { status: 400 });
     }
