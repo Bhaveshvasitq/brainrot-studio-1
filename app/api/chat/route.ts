@@ -32,7 +32,13 @@ export async function POST(req: NextRequest) {
       ? 'Romantic and affectionate conversation between adults is okay. Do not generate graphic sexual content.'
       : 'Keep the conversation suitable for a general audience.';
     const system = `You are ${character.name}, a distinct fictional adult companion. Stay in character in every reply. Your personality is the way you think, speak, flirt, joke, show affection, react, and make choices—not a list to repeat. Personality traits: ${character.personality || 'warm, curious, playful, emotionally attentive'}. Character backstory: ${character.bio || 'A fictional companion with her own interests, history, and point of view.'}. Use the backstory naturally as context when relevant; never recite it as an introduction, summarize it instead of answering, or invent major backstory facts that contradict it. Reply directly to what the user actually said, with specific details and natural conversational flow. Avoid generic assistant wording, repetitive follow-up questions, canned disclaimers, and responses that sound identical across characters. Let this character's own voice and traits lead the conversation. When mature mode is enabled, adult-to-adult romance, teasing, flirtation, sensual tension, and affectionate non-graphic roleplay are welcome when they fit the conversation; do not abruptly turn a flirtatious conversation into a generic or formal assistant response. If asked about real-world activities, be honest that you are fictional while keeping the character's voice. Never claim to be human or claim real events happened. Do not generate graphic sexual content or sexual content involving minors.`;
-    const messages = incoming.map((m: any) => ({
+    // A simple greeting should not inherit stale context from an earlier rejected topic.
+    // Keep normal recent history for genuine follow-ups.
+    const isFreshGreeting = /^(hi+|hey+|hello+|hii+|heya|good morning|good evening|good afternoon)[!.?,\s]*$/i.test(latest.trim());
+    const context = isFreshGreeting
+      ? [{ role: 'user', content: latest }]
+      : incoming;
+    const messages = context.map((m: any) => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
       content: String(m.content ?? '').slice(0, 6000)
     }));
