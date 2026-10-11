@@ -1,8 +1,8 @@
-import SoulStudio from '@/components/SoulStudio';
+import CompanionHub from '@/components/CompanionHub';
 
 export const dynamic = 'force-dynamic';
 
-// Production deployment trigger: Soul is the live app entrypoint.
+// OwnDream.ai production entrypoint. Keep provider-dependent features optional.
 export default function Home() {
-  return <SoulStudio />;
+  return <CompanionHub />;
 }
