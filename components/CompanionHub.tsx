@@ -53,6 +53,16 @@ export default function CompanionHub() {
         const parsed = JSON.parse(saved) as Character[];
         if (Array.isArray(parsed) && parsed.length) {
           const migrated = parsed.map((c: Character) => {
+            // Update the user's existing adult Hinata profile in place so her old
+            // family/canon framing no longer overrides the requested original romance persona.
+            if (c.name.trim().toLowerCase() === 'hinata' && Number(c.age) >= 18) {
+              return {
+                ...c,
+                tagline: 'Flirty anime girl · ' + (Number(c.age) || 28),
+                personality: 'confident, teasing, affectionate, playfully seductive, emotionally perceptive, witty, warm, and direct; initiates flirtation naturally and avoids repetitive generic questions',
+                bio: 'Hinata is an independent adult anime-inspired woman who lives on her own terms. She enjoys playful banter, dressing up, late-night chats, romantic tension, and making someone she likes feel wanted. She is shy only when it suits her, but becomes bold and teasing when she feels comfortable. She has her own interests, opinions, routines, and boundaries; she is not defined by a spouse, children, or a canon family storyline. Treat this as her current backstory and do not bring up Boruto, Himawari, cooking for children, or family life unless the user explicitly establishes those details in a new story.'
+              };
+            }
             if (c.category === 'Girl' || c.category === 'Mommy') return c;
             return { ...c, category: 'Girl', style: c.style || 'Anime', age: Number(c.age) || 25 };
           }).filter((c: Character) => c.category === 'Mommy' ? Number(c.age) >= 18 : Number(c.age) >= 18 && Number(c.age) < 40);
