@@ -1,8 +1,7 @@
-import SoulStudio from '@/components/SoulStudio';
+import CompanionHub from '@/components/CompanionHub';
 
 export const dynamic = 'force-dynamic';
 
-// Production deployment trigger: Soul is the live app entrypoint.
 export default function Home() {
-  return <SoulStudio />;
+  return <CompanionHub />;
 }
