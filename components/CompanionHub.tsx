@@ -3,27 +3,20 @@
 import { useEffect, useMemo, useState } from 'react';
 
 type Character = {
-  id: string; name: string; tagline: string; personality: string; bio: string; emoji: string; color: string; category?: string;
+  id: string; name: string; tagline: string; personality: string; bio: string; emoji: string; color: string; category?: string; style?: string; age?: number;
 };
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const starters: Character[] = [
-  { id: 'luna', name: 'Luna', tagline: 'Your midnight confidant', personality: 'gentle, dreamy, witty, emotionally attentive', bio: 'A soft place to land after a long day. Talk about your dreams, music, and everything on your mind.', emoji: '🌙', color: '#d9ccff', category: 'Comfort' },
-  { id: 'mika', name: 'Mika', tagline: 'Your chaotic bestie', personality: 'playful, energetic, loyal, teasing', bio: 'The friend who sends you memes at 2 AM and reminds you that you can do hard things.', emoji: '🌸', color: '#ffd5e4', category: 'Best friend' },
-  { id: 'kai', name: 'Kai', tagline: 'A world of adventure', personality: 'calm, clever, protective, dry humor', bio: 'A mysterious guide for quests, fantasy worlds, and stories that go somewhere unexpected.', emoji: '🌌', color: '#cce8ff', category: 'Adventure' },
-  { id: 'aria', name: 'Aria', tagline: 'A little storybook romance', personality: 'warm, charming, thoughtful, romantic', bio: 'Sweet conversations, thoughtful little moments, and a slow-burn fictional romance.', emoji: '💗', color: '#ffe0ed', category: 'Romance' },
-  { id: 'yuki', name: 'Yuki', tagline: 'Anime world bestie', personality: 'curious, funny, brave, expressive', bio: 'Step into an anime-inspired world full of silly moments, big feelings, and mini adventures.', emoji: '🦋', color: '#d9f3e8', category: 'Anime' },
-  { id: 'ember', name: 'Ember', tagline: 'Bold energy, soft heart', personality: 'confident, affectionate, witty, passionate', bio: 'A confident creative partner who makes every ordinary conversation feel like a scene.', emoji: '✨', color: '#ffe4c8', category: 'Roleplay' },
+  { id: 'luna', name: 'Luna', tagline: 'Anime girl · 22', personality: 'gentle, dreamy, witty, emotionally attentive', bio: 'An adult anime-inspired woman who loves moonlit conversations, music, and stories.', emoji: '🌙', color: '#d9ccff', category: 'Girl', style: 'Anime', age: 22 },
+  { id: 'mika', name: 'Mika', tagline: 'Cosplayer · 25', personality: 'playful, energetic, loyal, teasing', bio: 'An adult cosplayer with bright energy, creative costumes, and a playful sense of humor.', emoji: '🌸', color: '#ffd5e4', category: 'Girl', style: 'Cosplayer', age: 25 },
+  { id: 'aria', name: 'Aria', tagline: 'Elegant mommy · 42', personality: 'warm, charming, thoughtful, confident', bio: 'A fictional adult woman in her forties: elegant, caring, witty, and thoughtful.', emoji: '💗', color: '#ffe0ed', category: 'Mommy', style: 'Elegant', age: 42 },
+  { id: 'yuki', name: 'Yuki', tagline: 'Gamer girl · 21', personality: 'curious, funny, brave, expressive', bio: 'An adult gamer girl who loves anime, co-op adventures, and friendly competition.', emoji: '🦋', color: '#d9f3e8', category: 'Girl', style: 'Gamer', age: 21 },
+  { id: 'ember', name: 'Ember', tagline: 'Goth mommy · 39', personality: 'confident, affectionate, witty, passionate', bio: 'A fictional adult goth woman with a bold style, soft heart, and sharp humor.', emoji: '✨', color: '#ffe4c8', category: 'Mommy', style: 'Goth', age: 39 },
+  { id: 'vivian', name: 'Vivian', tagline: 'Realistic style · 45', personality: 'calm, mature, supportive, clever', bio: 'A fictional adult woman in her forties with a grounded personality and a creative streak.', emoji: '🌹', color: '#f7d8d8', category: 'Mommy', style: 'Realistic', age: 45 },
 ];
 
-const moods = [
-  { name: 'Romance', emoji: '💞', color: '#ffe6ef' },
-  { name: 'Best friend', emoji: '🫶', color: '#fff0d9' },
-  { name: 'Anime', emoji: '🌸', color: '#f0e8ff' },
-  { name: 'Roleplay', emoji: '🎭', color: '#e4f4ff' },
-  { name: 'Adventure', emoji: '🗺️', color: '#e5f7ec' },
-  { name: 'Comfort', emoji: '☁️', color: '#f8e9ff' },
-];
+const styles = ['All styles', 'Anime', 'Cosplayer', 'Realistic', 'Cute', 'Gamer', 'Goth', 'Fantasy', 'Waifu', 'Elegant', 'Mature'];
 const initialMessage = (c: Character): Message[] => [{ role: 'assistant', content: `Hey, I'm ${c.name} 💗 ${c.bio} What's on your mind?` }];
 
 export default function CompanionHub() {
@@ -34,23 +27,36 @@ export default function CompanionHub() {
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'discover' | 'chat' | 'create' | 'studio'>('discover');
   const [filter, setFilter] = useState('');
-  const [mood, setMood] = useState('All');\n  const [styleFilter, setStyleFilter] = useState('All styles');
+  const [mood, setMood] = useState('All');
+  const [styleFilter, setStyleFilter] = useState('All styles');
+  const [styleFilter, setStyleFilter] = useState('All styles');
   const [newName, setNewName] = useState('');
   const [newBio, setNewBio] = useState('');
   const [newPersonality, setNewPersonality] = useState('warm, curious, playful');
   const [notice, setNotice] = useState('');
   const active = characters.find(c => c.id === activeId) ?? characters[0];
-  const filtered = useMemo(() => characters.filter(c =>
-    (c.name + ' ' + c.tagline + ' ' + c.personality + ' ' + (c.category || '')).toLowerCase().includes(filter.toLowerCase())
-    && (mood === 'All' || c.category === mood)
-  ), [characters, filter, mood]);
+  const filtered = useMemo(() => characters.filter(c => {
+    const age = Number(c.age ?? 0);
+    const validCategory = c.category === 'Girl' ? age >= 18 && age < 40 : c.category === 'Mommy' ? age >= 18 : false;
+    return validCategory
+      && (c.name + ' ' + c.tagline + ' ' + c.personality + ' ' + (c.category || '') + ' ' + (c.style || '')).toLowerCase().includes(filter.toLowerCase())
+      && (mood === 'All' || c.category === mood)
+      && (styleFilter === 'All styles' || c.style === styleFilter);
+  }), [characters, filter, mood, styleFilter]);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('owndream-characters-v1');
       if (saved) {
         const parsed = JSON.parse(saved) as Character[];
-        if (Array.isArray(parsed) && parsed.length) {\n          const migrated = parsed.map((c: Character) => {\n            if (c.category === 'Girl' || c.category === 'Mommy') return c;\n            return { ...c, category: 'Girl', style: c.style || 'Anime', age: Number(c.age) || 25 };\n          }).filter((c: Character) => c.category === 'Mommy' ? Number(c.age) >= 18 : Number(c.age) >= 18 && Number(c.age) < 40);\n          setCharacters(migrated);\n          localStorage.setItem('owndream-characters-v1', JSON.stringify(migrated));\n        }
+        if (Array.isArray(parsed) && parsed.length) {
+          const migrated = parsed.map((c: Character) => {
+            if (c.category === 'Girl' || c.category === 'Mommy') return c;
+            return { ...c, category: 'Girl', style: c.style || 'Anime', age: Number(c.age) || 25 };
+          }).filter((c: Character) => c.category === 'Mommy' ? Number(c.age) >= 18 : Number(c.age) >= 18 && Number(c.age) < 40);
+          setCharacters(migrated);
+          localStorage.setItem('owndream-characters-v1', JSON.stringify(migrated));
+        }
       }
       const savedMessages = localStorage.getItem('owndream-chat-' + activeId);
       if (savedMessages) setMessages(JSON.parse(savedMessages));
@@ -118,12 +124,12 @@ export default function CompanionHub() {
       <section style={{ textAlign: 'center', padding: '22px 0 25px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #f0dff0', borderRadius: 999, background: '#fff', color: '#a76fb7', fontSize: 12, fontWeight: 700, padding: '7px 12px', marginBottom: 15 }}><span>✦</span> A little world made just for you</div>
         <h1 style={{ fontSize: 'clamp(34px,6vw,58px)', lineHeight: 1.05, letterSpacing: '-2.2px', margin: '0 auto 13px', fontWeight: 850, maxWidth: 780 }}>Meet your next <span style={{ background: 'linear-gradient(90deg,#a779dd,#e78dbb)', WebkitBackgroundClip: 'text', color: 'transparent' }}>favorite soul.</span></h1>
-        <p style={{ color: '#8e7d93', lineHeight: 1.7, maxWidth: 520, margin: '0 auto 22px', fontSize: 15 }}>Find a friend, a story, a spark — or create a character who feels like yours.</p>
+        <p style={{ color: '#8e7d93', lineHeight: 1.7, maxWidth: 520, margin: '0 auto 22px', fontSize: 15 }}>Discover adult fictional Girls (18–39) and Mommies (18+), in anime, cosplay, realistic, gamer, goth, fantasy, and more styles.</p>
         <div style={{ position: 'relative', maxWidth: 590, margin: '0 auto' }}><span style={{ position: 'absolute', left: 17, top: 13, fontSize: 20, color: '#b99bc1' }}>⌕</span><input aria-label="Search characters" style={{ ...input, borderRadius: 18, padding: '15px 18px 15px 48px', boxShadow: '0 10px 32px rgba(147,101,154,.09)' }} placeholder="Search characters, moods, or stories..." value={filter} onChange={e => setFilter(e.target.value)} /></div>
       </section>
 
       <section style={{ margin: '8px 0 28px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 10, marginBottom: 14 }}><div><div style={{ fontSize: 11, color: '#bc83c3', letterSpacing: 2, fontWeight: 800, marginBottom: 5 }}>FOLLOW YOUR FEELING</div><h2 style={titleStyle}>Made for your mood</h2></div><span style={{ color: '#a392a7', fontSize: 12 }}>Pick a vibe →</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 10, marginBottom: 14 }}><div><div style={{ fontSize: 11, color: '#bc83c3', letterSpacing: 2, fontWeight: 800, marginBottom: 5 }}>CHOOSE A CATEGORY</div><h2 style={titleStyle}>Girl or Mommy</h2></div><span style={{ color: '#a392a7', fontSize: 12 }}>Filter by style →</span></div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><button onClick={() => setMood(mood === 'Girl' ? 'All' : 'Girl')} style={{ ...button, background: mood === 'Girl' ? '#f5e8fb' : '#fff', borderColor: mood === 'Girl' ? '#d5a8df' : '#f1e5f1' }}>Girl · ages 18–39</button><button onClick={() => setMood(mood === 'Mommy' ? 'All' : 'Mommy')} style={{ ...button, background: mood === 'Mommy' ? '#f5e8fb' : '#fff', borderColor: mood === 'Mommy' ? '#d5a8df' : '#f1e5f1' }}>Mommy · ages 18+</button><select aria-label="Filter by character style" value={styleFilter} onChange={e => setStyleFilter(e.target.value)} style={{ ...input, width: 'auto', minWidth: 170, padding: '10px 12px' }}>{styles.map(style => <option key={style} value={style}>{style}</option>)}</select></div>
       </section>
 
