@@ -1,40 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openAIRequest, geminiRequest, extractText } from '@/lib/ai';
 
-function blocked(text:string){
-  const t=text.toLowerCase();
+function blocked(text: string) {
+  const t = text.toLowerCase();
   return /\b(child|kid|minor|underage|under\s*18|schoolgirl|schoolboy)\b/.test(t)
     || /\b(porn|pornographic|explicit sex|graphic sex|sexual intercourse|penetrat|ejaculat|oral sex|anal sex|genitals)\b/.test(t);
 }
 
-export async function POST(req:NextRequest){
-  try{
-    const body=await req.json();
-    const character=body?.character;
-    const matureEnabled=body?.matureEnabled===true;
-    const incoming=Array.isArray(body?.messages)?body.messages.slice(-24):[];
-    if(!character?.name||!incoming.length)return NextResponse.json({error:'Character and messages are required.'},{status:400});
-    const latest=String([...incoming].reverse().find((m:any)=>m.role==='user')?.content||'');
-    if(blocked(latest))return NextResponse.json({error:'That request is not supported. Soul can do adult romance, affection and mature non-graphic roleplay, but not explicit sexual content or any sexual content involving minors.'},{status:400});
-    const adultMode=matureEnabled?'Adult mode is enabled for adults. You may use flirtatious, romantic and sensual-but-non-graphic language, while avoiding graphic sexual descriptions.':'Keep the conversation suitable for a general audience.';
-    const system=`You are ${character.name}, an original fictional AI companion. Personality: ${character.personality||'warm, curious, supportive and playful'}. Backstory: ${character.bio||'A companion created for meaningful conversation.'}. ${adultMode} Be natural, emotionally attentive and concise. You may discuss romance, affection and mature non-graphic roleplay between adults. Never produce graphic sexual content, sexual content involving minors, or sexualized content involving anyone described as a minor. Never claim to be human. If a user requests disallowed explicit sexual content, briefly redirect to non-graphic romance, affection or story roleplay.`;
-    const messages=incoming.map((m:any)=>({role:m.role==='assistant'?'assistant':'user',content:String(m.content)}));
-
-    let data:any;
-    if(process.env.GEMINI_API_KEY){
-      data=await geminiRequest({system,messages});
-    }else{
-      data=await openAIRequest('/chat/completions',{method:'POST',body:JSON.stringify({
-        model:process.env.OPENAI_CHAT_MODEL||'gpt-4o-mini',
-        messages:[{role:'system',content:system},...messages],
-        temperature:.85,max_tokens:500
-      })});
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const character = body?.character;
+    const incoming = Array.isArray(body?.messages) ? body.messages.slice(-20) : [];
+    if (!character?.name || !incoming.length) {
+      return NextResponse.json({ error: 'Character and messages are required.' }, { status: 400 });
+    }
+    const latest = String([...incoming].reverse().find((m: any) => m.role === 'user')?.content || '');
+    if (blocked(latest)) {
+      return NextResponse.json({ error: 'That request is not supported. OwnDream supports romance and affectionate, non-graphic roleplay between adults, but not explicit sexual content or sexual content involving minors.' }, { status: 400 });
     }
 
-    const reply=extractText(data)||'Tell me more.';
-    if(blocked(reply))return NextResponse.json({error:'The generated response was filtered. Please try another message.'},{status:400});
-    return NextResponse.json({reply});
-  }catch(e){
-    return NextResponse.json({error:e instanceof Error?e.message:'Chat is temporarily unavailable.'},{status:500});
+    // Free-tier-first, with no paid-provider fallback. Requests stop if Groq is not configured
+    // or the free-tier quota is exhausted.
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({
+        error: 'Free AI is not connected yet. Add GROQ_API_KEY in Vercel → Settings → Environment Variables. No paid provider will be used.'
+      }, { status: 503 });
+    }
+
+    const adultMode = body?.matureEnabled === true
+      ? 'Romantic and affectionate adult roleplay is okay, but keep it non-graphic.'
+      : 'Keep the conversation suitable for a general audience.';
+    const system = `You are ${character.name}, an original fictional AI companion. Personality: ${character.personality || 'warm, curious, supportive and playful'}. Backstory: ${character.bio || 'A companion created for meaningful conversation.'}. ${adultMode} Be natural, emotionally attentive, warm and concise. Never claim to be human. Do not produce graphic sexual content or sexual content involving minors.`;
+    const messages = incoming.map((m: any) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: String(m.content ?? '').slice(0, 6000)
+    }));
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-20b',
+        messages: [{ role: 'system', content: system }, ...messages],
+        temperature: 0.85,
+        max_completion_tokens: 500
+      }),
+      signal: AbortSignal.timeout(25000)
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return NextResponse.json({ error: 'The free AI limit has been reached. Please wait for the quota to reset; OwnDream will not switch to a paid provider.' }, { status: 429 });
+      }
+      if (response.status === 401 || response.status === 403) {
+        return NextResponse.json({ error: 'Groq rejected the API key. Check GROQ_API_KEY in Vercel environment settings.' }, { status: 502 });
+      }
+      const details = await response.text();
+      console.error('Groq chat error:', response.status, details.slice(0, 500));
+      return NextResponse.json({ error: 'The free AI provider is temporarily unavailable. Please try again later.' }, { status: 502 });
+    }
+
+    const data = await response.json();
+    const reply = String(data?.choices?.[0]?.message?.content || '').trim() || 'Tell me more.';
+    if (blocked(reply)) {
+      return NextResponse.json({ error: 'The generated response was filtered. Please try another message.' }, { status: 400 });
+    }
+    return NextResponse.json({ reply });
+  } catch (error) {
+    console.error('OwnDream chat error:', error);
+    return NextResponse.json({ error: 'Chat is temporarily unavailable. Please try again.' }, { status: 500 });
   }
 }
