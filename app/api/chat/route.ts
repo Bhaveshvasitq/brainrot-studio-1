@@ -68,10 +68,34 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const reply = String(data?.choices?.[0]?.message?.content || '').trim();
+    let reply = String(data?.choices?.[0]?.message?.content || '').trim();
     if (!reply) {
-      console.error('Groq returned an empty chat completion:', JSON.stringify({ model: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-20b', finish_reason: data?.choices?.[0]?.finish_reason }));
-      return NextResponse.json({ error: 'The AI returned an empty reply. Please send your message again.' }, { status: 502 });
+      console.warn('Groq returned an empty chat completion; retrying once with the latest message only:', JSON.stringify({ model: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-20b', finish_reason: data?.choices?.[0]?.finish_reason }));
+      // Some provider responses can contain no user-facing content. Retry once without
+      // earlier conversation turns so an old refusal or context cannot poison this reply.
+      const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-20b',
+          messages: [
+            { role: 'system', content: `You are ${character.name}, a fictional adult companion. Speak naturally in your own character voice, using this personality: ${character.personality || 'warm, curious, playful'}. Use this backstory as context, never repeat it as a biography: ${character.bio || 'A fictional companion with her own point of view.'}. Reply directly to the user's latest message. For adult conversations, keep romance and flirting non-graphic. Do not claim to be human.` },
+            { role: 'user', content: latest.slice(0, 6000) }
+          ],
+          temperature: 0.7,
+          max_completion_tokens: 700
+        }),
+        signal: AbortSignal.timeout(25000)
+      });
+      if (retry.ok) {
+        const retryData = await retry.json();
+        reply = String(retryData?.choices?.[0]?.message?.content || '').trim();
+      } else {
+        console.warn('Groq retry failed:', retry.status);
+      }
+      if (!reply) {
+        return NextResponse.json({ error: 'The free AI provider returned no text twice. Please try again shortly.' }, { status: 502 });
+      }
     }
     if (blocked(reply)) {
       return NextResponse.json({ error: 'The generated response was filtered. Please try another message.' }, { status: 400 });
