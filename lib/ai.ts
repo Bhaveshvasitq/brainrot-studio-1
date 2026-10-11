@@ -17,7 +17,7 @@ export async function openAIRequest(path: string, init: RequestInit) {
 
 export async function geminiRequest(body: { system: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> }) {
   if (!GEMINI_API_KEY) throw new Error('Gemini provider is not configured. Add GEMINI_API_KEY in Vercel.');
-  const model = process.env.GEMINI_CHAT_MODEL || 'gemini-2.5-flash';
+  const model = process.env.GEMINI_CHAT_MODEL || 'gemini-3.8-flash';
   const contents = body.messages.map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
