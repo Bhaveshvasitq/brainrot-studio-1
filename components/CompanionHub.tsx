@@ -111,7 +111,7 @@ export default function CompanionHub() {
         <div style={{...panel, display:'flex', alignItems:'center', gap:12}}><div style={{fontSize:34, background:active.color+'33', borderRadius:14, padding:8}}>{active.emoji}</div><div style={{flex:1}}><h2 style={{margin:'0 0 4px'}}>{active.name}</h2><div style={{fontSize:13,color:'#bdb5cf'}}>{active.tagline} · memory saved in this browser</div></div><button style={button} onClick={()=>setTab('discover')}>Change character</button></div>
         <div style={{...panel, minHeight:320, display:'flex', flexDirection:'column', gap:12}}><div style={{flex:1, display:'flex', flexDirection:'column', gap:10}}>{messages.map((m,i)=><div key={i} style={{alignSelf:m.role==='user'?'flex-end':'flex-start', maxWidth:'85%', padding:'11px 14px', borderRadius:16, lineHeight:1.55, background:m.role==='user'?'#6f58ba':'rgba(255,255,255,.09)', whiteSpace:'pre-wrap'}}>{m.content}</div>)}{busy&&<div style={{color:'#c5b6ff'}}>Thinking…</div>}</div>
           {notice&&<div style={{fontSize:12,color:'#e8cfa3'}}>{notice}</div>}
-          <form onSubmit={e=>{e.preventDefault();void sendMessage();}} style={{display:'flex', gap:8}}><input style={input} value={draft} onChange={e=>setDraft(e.target.value)} placeholder={`Message ${active.name}…`} /><button disabled={busy} style={{...button, background:'#7961c9', opacity:busy?.65:1}}>Send</button></form>
+          <form onSubmit={e=>{e.preventDefault();void sendMessage();}} style={{display:'flex', gap:8}}><input style={input} value={draft} onChange={e=>setDraft(e.target.value)} placeholder={`Message ${active.name}…`} /><button disabled={busy} style={{...button, background:'#7961c9', opacity: busy ? 0.65 : 1}}>Send</button></form>
         </div>
       </section>}
 
