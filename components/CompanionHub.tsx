@@ -3,18 +3,28 @@
 import { useEffect, useMemo, useState } from 'react';
 
 type Character = {
-  id: string; name: string; tagline: string; personality: string; bio: string; emoji: string; color: string;
+  id: string; name: string; tagline: string; personality: string; bio: string; emoji: string; color: string; category?: string;
 };
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const starters: Character[] = [
-  { id: 'luna', name: 'Luna', tagline: 'Dreamy confidant', personality: 'gentle, witty, curious, emotionally attentive', bio: 'A calm, moonlit companion for late-night thoughts, music and meaningful conversations.', emoji: '🌙', color: '#c7b5ff' },
-  { id: 'mika', name: 'Mika', tagline: 'Playful best friend', personality: 'playful, energetic, loyal, teasing', bio: 'Bright energy, terrible jokes and unlimited encouragement.', emoji: '🌸', color: '#ffb9d1' },
-  { id: 'kai', name: 'Kai', tagline: 'Cyberpunk guide', personality: 'calm, clever, protective, dry humor', bio: 'A sharp companion from a neon city who loves strategy and futuristic stories.', emoji: '🌌', color: '#8fc7ff' },
-  { id: 'ember', name: 'Ember', tagline: 'Confident romantic', personality: 'confident, affectionate, witty, passionate', bio: 'Bold, warm and playful, with a talent for memorable moments.', emoji: '🔥', color: '#ffc18b' },
+  { id: 'luna', name: 'Luna', tagline: 'Your midnight confidant', personality: 'gentle, dreamy, witty, emotionally attentive', bio: 'A soft place to land after a long day. Talk about your dreams, music, and everything on your mind.', emoji: '🌙', color: '#d9ccff', category: 'Comfort' },
+  { id: 'mika', name: 'Mika', tagline: 'Your chaotic bestie', personality: 'playful, energetic, loyal, teasing', bio: 'The friend who sends you memes at 2 AM and reminds you that you can do hard things.', emoji: '🌸', color: '#ffd5e4', category: 'Best friend' },
+  { id: 'kai', name: 'Kai', tagline: 'A world of adventure', personality: 'calm, clever, protective, dry humor', bio: 'A mysterious guide for quests, fantasy worlds, and stories that go somewhere unexpected.', emoji: '🌌', color: '#cce8ff', category: 'Adventure' },
+  { id: 'aria', name: 'Aria', tagline: 'A little storybook romance', personality: 'warm, charming, thoughtful, romantic', bio: 'Sweet conversations, thoughtful little moments, and a slow-burn fictional romance.', emoji: '💗', color: '#ffe0ed', category: 'Romance' },
+  { id: 'yuki', name: 'Yuki', tagline: 'Anime world bestie', personality: 'curious, funny, brave, expressive', bio: 'Step into an anime-inspired world full of silly moments, big feelings, and mini adventures.', emoji: '🦋', color: '#d9f3e8', category: 'Anime' },
+  { id: 'ember', name: 'Ember', tagline: 'Bold energy, soft heart', personality: 'confident, affectionate, witty, passionate', bio: 'A confident creative partner who makes every ordinary conversation feel like a scene.', emoji: '✨', color: '#ffe4c8', category: 'Roleplay' },
 ];
 
-const initialMessage = (c: Character): Message[] => [{ role: 'assistant', content: `Hi, I'm ${c.name}. ${c.bio} What would you like to talk about?` }];
+const moods = [
+  { name: 'Romance', emoji: '💞', color: '#ffe6ef' },
+  { name: 'Best friend', emoji: '🫶', color: '#fff0d9' },
+  { name: 'Anime', emoji: '🌸', color: '#f0e8ff' },
+  { name: 'Roleplay', emoji: '🎭', color: '#e4f4ff' },
+  { name: 'Adventure', emoji: '🗺️', color: '#e5f7ec' },
+  { name: 'Comfort', emoji: '☁️', color: '#f8e9ff' },
+];
+const initialMessage = (c: Character): Message[] => [{ role: 'assistant', content: `Hey, I'm ${c.name} 💗 ${c.bio} What's on your mind?` }];
 
 export default function CompanionHub() {
   const [characters, setCharacters] = useState<Character[]>(starters);
@@ -24,33 +34,35 @@ export default function CompanionHub() {
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'discover' | 'chat' | 'create' | 'studio'>('discover');
   const [filter, setFilter] = useState('');
+  const [mood, setMood] = useState('All');
   const [newName, setNewName] = useState('');
   const [newBio, setNewBio] = useState('');
   const [newPersonality, setNewPersonality] = useState('warm, curious, playful');
   const [notice, setNotice] = useState('');
   const active = characters.find(c => c.id === activeId) ?? characters[0];
-  const filtered = useMemo(() => characters.filter(c => (c.name + ' ' + c.tagline + ' ' + c.personality).toLowerCase().includes(filter.toLowerCase())), [characters, filter]);
+  const filtered = useMemo(() => characters.filter(c =>
+    (c.name + ' ' + c.tagline + ' ' + c.personality + ' ' + (c.category || '')).toLowerCase().includes(filter.toLowerCase())
+    && (mood === 'All' || c.category === mood)
+  ), [characters, filter, mood]);
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('dreamlight-characters-v1');
+      const saved = localStorage.getItem('owndream-characters-v1');
       if (saved) {
         const parsed = JSON.parse(saved) as Character[];
         if (Array.isArray(parsed) && parsed.length) setCharacters(parsed);
       }
-      const savedMessages = localStorage.getItem('dreamlight-chat-' + activeId);
+      const savedMessages = localStorage.getItem('owndream-chat-' + activeId);
       if (savedMessages) setMessages(JSON.parse(savedMessages));
     } catch {}
   }, []);
 
   function openChat(c: Character) {
-    setActiveId(c.id);
-    setTab('chat');
+    setActiveId(c.id); setTab('chat'); setNotice('');
     try {
-      const saved = localStorage.getItem('dreamlight-chat-' + c.id);
+      const saved = localStorage.getItem('owndream-chat-' + c.id);
       setMessages(saved ? JSON.parse(saved) : initialMessage(c));
     } catch { setMessages(initialMessage(c)); }
-    setNotice('');
   }
 
   async function sendMessage() {
@@ -64,65 +76,94 @@ export default function CompanionHub() {
         body: JSON.stringify({ character: { name: active.name, personality: active.personality, bio: active.bio }, messages: next.slice(-20), matureEnabled: false })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Chat provider is not configured yet.');
+      if (!response.ok) throw new Error(data.error || 'Free AI is not available right now.');
       const finished = [...next, { role: 'assistant' as const, content: String(data.reply || 'Tell me more.') }];
-      setMessages(finished);
-      localStorage.setItem('dreamlight-chat-' + active.id, JSON.stringify(finished));
+      setMessages(finished); localStorage.setItem('owndream-chat-' + active.id, JSON.stringify(finished));
     } catch (e) {
-      const fallback = { role: 'assistant' as const, content: `I'm here with you. (Demo mode: connect a supported chat API in server environment settings to enable live AI.)` };
-      const finished = [...next, fallback]; setMessages(finished);
-      localStorage.setItem('dreamlight-chat-' + active.id, JSON.stringify(finished));
-      setNotice(e instanceof Error ? e.message : 'Using demo reply.');
+      setNotice(e instanceof Error ? e.message : 'Free AI is unavailable. Please try again.');
     } finally { setBusy(false); }
   }
 
   function createCharacter() {
     const name = newName.trim();
-    if (!name) { setNotice('Enter a character name first.'); return; }
-    const c: Character = { id: 'custom-' + Date.now(), name, tagline: 'Original character', personality: newPersonality.trim() || 'warm, curious, playful', bio: newBio.trim() || 'A companion created by you.', emoji: '✨', color: '#b9f3df' };
-    const next = [c, ...characters]; setCharacters(next); localStorage.setItem('dreamlight-characters-v1', JSON.stringify(next));
-    setNewName(''); setNewBio(''); setActiveId(c.id); setMessages(initialMessage(c)); setTab('chat'); setNotice('Character created and saved in this browser.');
+    if (!name) { setNotice('Add a name for your character first.'); return; }
+    const c: Character = { id: 'custom-' + Date.now(), name, tagline: 'Made in your imagination', personality: newPersonality.trim() || 'warm, curious, playful', bio: newBio.trim() || 'A one-of-a-kind companion created by you.', emoji: '🪄', color: '#e8ddff', category: 'Roleplay' };
+    const next = [c, ...characters]; setCharacters(next); localStorage.setItem('owndream-characters-v1', JSON.stringify(next));
+    setNewName(''); setNewBio(''); setActiveId(c.id); setMessages(initialMessage(c)); setTab('chat'); setNotice('Your character is ready ✨');
   }
 
-  const page: React.CSSProperties = { minHeight: '100vh', color: '#f7f4ff', background: 'radial-gradient(ellipse at top left, #28204b 0%, #11101b 44%, #0a0a12 100%)', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', padding: '24px clamp(14px, 4vw, 48px)' };
-  const panel: React.CSSProperties = { background: 'rgba(255,255,255,.055)', border: '1px solid rgba(255,255,255,.11)', borderRadius: 20, padding: 18 };
-  const button: React.CSSProperties = { border: '1px solid rgba(255,255,255,.14)', borderRadius: 12, padding: '10px 14px', color: '#fff', background: 'rgba(255,255,255,.08)', cursor: 'pointer' };
-  const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', color: '#fff', background: 'rgba(0,0,0,.22)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 12, padding: 12, outline: 'none' };
+  const page: React.CSSProperties = { minHeight: '100vh', color: '#30263d', background: 'linear-gradient(155deg,#fff9fc 0%,#f8f5ff 46%,#fff8f1 100%)', fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif', padding: '18px clamp(14px, 4vw, 48px) 94px' };
+  const panel: React.CSSProperties = { background: 'rgba(255,255,255,.88)', border: '1px solid #f0e8f2', borderRadius: 22, padding: 18, boxShadow: '0 8px 28px rgba(111,75,116,.055)' };
+  const button: React.CSSProperties = { border: '1px solid #eee2f0', borderRadius: 14, padding: '10px 15px', color: '#493650', background: '#fff', cursor: 'pointer', fontWeight: 650 };
+  const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', color: '#3c2c43', background: '#fff', border: '1px solid #eadfec', borderRadius: 14, padding: '13px 15px', outline: 'none' };
+  const accentButton: React.CSSProperties = { ...button, border: 0, color: '#fff', background: 'linear-gradient(100deg,#bd8fe7,#f39fbe)', boxShadow: '0 6px 16px rgba(202,139,193,.22)' };
+  const titleStyle: React.CSSProperties = { fontSize: 25, letterSpacing: '-.7px', margin: '0 0 5px', fontWeight: 800 };
+  const navItems = [
+    { id: 'discover' as const, label: 'Discover', icon: '⌕' },
+    { id: 'chat' as const, label: 'Messages', icon: '♡' },
+    { id: 'create' as const, label: 'Create', icon: '＋' },
+    { id: 'studio' as const, label: 'Studio', icon: '✧' },
+  ];
 
   return <main style={page}>
-    <header style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap', maxWidth:1280, margin:'0 auto 28px'}}>
-      <div style={{display:'flex', gap:12, alignItems:'center'}}><div style={{fontSize:28, background:'linear-gradient(135deg,#bca8ff,#ffb9d1)', borderRadius:14, padding:'8px 12px'}}>✦</div><div><div style={{fontSize:11, letterSpacing:3, color:'#c5b6ff'}}>OwnDream.ai</div><h1 style={{fontSize:26, margin:'3px 0'}}>Imagine anyone. Create your world.</h1></div></div>
-      <nav style={{display:'flex', gap:8, flexWrap:'wrap'}}>{(['discover','chat','create','studio'] as const).map(t=><button key={t} style={{...button, background:tab===t?'#7961c9':'rgba(255,255,255,.06)'}} onClick={()=>setTab(t)}>{({discover:'Discover',chat:'Messages',create:'Create character',studio:'Create media'})[t]}</button>)}</nav>
+    <header style={{ maxWidth: 1120, margin: '0 auto 25px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+      <button onClick={() => setTab('discover')} aria-label="OwnDream home" style={{ display: 'flex', alignItems: 'center', gap: 10, border: 0, background: 'transparent', cursor: 'pointer', padding: 0, color: '#3e2c48' }}>
+        <span style={{ display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 15, color: '#fff', fontSize: 23, background: 'linear-gradient(140deg,#b18ae8,#f4a6c5)', boxShadow: '0 6px 16px #d9b7e6' }}>✦</span>
+        <span style={{ textAlign: 'left' }}><span style={{ display: 'block', fontSize: 20, letterSpacing: '-.7px', fontWeight: 850 }}>OwnDream<span style={{ color: '#c78bd8' }}>.ai</span></span><span style={{ display: 'block', fontSize: 10, letterSpacing: 1.8, color: '#9b839e' }}>YOUR IMAGINATION, YOUR WORLD</span></span>
+      </button>
+      <nav style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{navItems.map(n => <button key={n.id} onClick={() => setTab(n.id)} style={{ ...button, borderColor: tab === n.id ? '#e7c8eb' : 'transparent', background: tab === n.id ? '#f5e8fb' : 'transparent', color: tab === n.id ? '#9c5ab6' : '#806e85', padding: '9px 12px' }}>{n.label}</button>)}</nav>
     </header>
-    <div style={{maxWidth:1280, margin:'0 auto'}}>
-      <section style={{...panel, marginBottom:18, padding:24, background:'linear-gradient(115deg,rgba(132,103,211,.23),rgba(255,185,209,.07))'}}>
-        <div style={{fontSize:11, letterSpacing:2, color:'#d3c8ff'}}>OWNDREAM.AI · AI CHARACTERS & CREATION</div>
-        <h2 style={{fontSize:'clamp(26px,4vw,42px)', lineHeight:1.12, margin:'10px 0'}}>Discover characters.<br/>Bring your imagination to life.</h2>
-        <p style={{color:'#c4bfd5', maxWidth:650, lineHeight:1.7, marginBottom:18}}>Discover original characters, build your own personalities, chat naturally, and create stories. Your creative studio is designed for free-tier-first integrations.</p>
-        <button style={{...button, background:'#b9a5ff', color:'#171024', fontWeight:700}} onClick={()=>setTab('discover')}>Explore characters ↗</button>
+
+    {tab === 'discover' && <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+      <section style={{ textAlign: 'center', padding: '22px 0 25px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #f0dff0', borderRadius: 999, background: '#fff', color: '#a76fb7', fontSize: 12, fontWeight: 700, padding: '7px 12px', marginBottom: 15 }}><span>✦</span> A little world made just for you</div>
+        <h1 style={{ fontSize: 'clamp(34px,6vw,58px)', lineHeight: 1.05, letterSpacing: '-2.2px', margin: '0 auto 13px', fontWeight: 850, maxWidth: 780 }}>Meet your next <span style={{ background: 'linear-gradient(90deg,#a779dd,#e78dbb)', WebkitBackgroundClip: 'text', color: 'transparent' }}>favorite soul.</span></h1>
+        <p style={{ color: '#8e7d93', lineHeight: 1.7, maxWidth: 520, margin: '0 auto 22px', fontSize: 15 }}>Find a friend, a story, a spark — or create a character who feels like yours.</p>
+        <div style={{ position: 'relative', maxWidth: 590, margin: '0 auto' }}><span style={{ position: 'absolute', left: 17, top: 13, fontSize: 20, color: '#b99bc1' }}>⌕</span><input aria-label="Search characters" style={{ ...input, borderRadius: 18, padding: '15px 18px 15px 48px', boxShadow: '0 10px 32px rgba(147,101,154,.09)' }} placeholder="Search characters, moods, or stories..." value={filter} onChange={e => setFilter(e.target.value)} /></div>
       </section>
 
-      {tab==='discover' && <section>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, flexWrap:'wrap', marginBottom:14}}><div><h2 style={{margin:'0 0 4px'}}>Explore the universe</h2><div style={{color:'#aaa3bd', fontSize:14}}>Find your next character, story, or conversation.</div></div><input aria-label="Search characters" style={{...input, maxWidth:300}} placeholder="Search characters…" value={filter} onChange={e=>setFilter(e.target.value)}/></div>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,235px),1fr))', gap:14}}>{filtered.map(c=><article key={c.id} style={{...panel, padding:0, overflow:'hidden'}}><div style={{height:150, display:'grid', placeItems:'center', background:`radial-gradient(circle at 50% 35%, ${c.color}77, transparent 65%),linear-gradient(135deg,#29223d,#171522)`, fontSize:64}}>{c.emoji}</div><div style={{padding:16}}><div style={{fontSize:11, color:'#c5b6ff', letterSpacing:1.5}}>{c.tagline.toUpperCase()}</div><h3 style={{margin:'6px 0'}}>{c.name}</h3><p style={{fontSize:13, color:'#bbb4ca', lineHeight:1.6, minHeight:62}}>{c.bio}</p><button style={{...button, width:'100%', background:'#7961c9'}} onClick={()=>openChat(c)}>Chat with {c.name}</button></div></article>)}</div>
-      </section>}
+      <section style={{ margin: '8px 0 28px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 10, marginBottom: 14 }}><div><div style={{ fontSize: 11, color: '#bc83c3', letterSpacing: 2, fontWeight: 800, marginBottom: 5 }}>FOLLOW YOUR FEELING</div><h2 style={titleStyle}>Made for your mood</h2></div><span style={{ color: '#a392a7', fontSize: 12 }}>Pick a vibe →</span></div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(125px,1fr))', gap: 10 }}>{moods.map(m => <button key={m.name} onClick={() => { setMood(mood === m.name ? 'All' : m.name); document.getElementById('popular-characters')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{ border: mood === m.name ? '1.5px solid #d5a8df' : '1px solid #f1e5f1', borderRadius: 18, background: m.color, color: '#5b4563', padding: '15px 12px', cursor: 'pointer', textAlign: 'left', boxShadow: mood === m.name ? '0 5px 18px #e9d8ef' : 'none' }}><span style={{ display: 'block', fontSize: 25, marginBottom: 9 }}>{m.emoji}</span><span style={{ fontWeight: 750, fontSize: 13 }}>{m.name}</span><span style={{ display: 'block', fontSize: 11, color: '#8f7c95', marginTop: 4 }}>Explore vibe ↗</span></button>)}</div>
+      </section>
 
-      {tab==='chat' && <section style={{display:'grid', gridTemplateColumns:'minmax(0,1fr)', gap:14}}>
-        <div style={{...panel, display:'flex', alignItems:'center', gap:12}}><div style={{fontSize:34, background:active.color+'33', borderRadius:14, padding:8}}>{active.emoji}</div><div style={{flex:1}}><h2 style={{margin:'0 0 4px'}}>{active.name}</h2><div style={{fontSize:13,color:'#bdb5cf'}}>{active.tagline} · memory saved in this browser</div></div><button style={button} onClick={()=>setTab('discover')}>Change character</button></div>
-        <div style={{...panel, minHeight:320, display:'flex', flexDirection:'column', gap:12}}><div style={{flex:1, display:'flex', flexDirection:'column', gap:10}}>{messages.map((m,i)=><div key={i} style={{alignSelf:m.role==='user'?'flex-end':'flex-start', maxWidth:'85%', padding:'11px 14px', borderRadius:16, lineHeight:1.55, background:m.role==='user'?'#6f58ba':'rgba(255,255,255,.09)', whiteSpace:'pre-wrap'}}>{m.content}</div>)}{busy&&<div style={{color:'#c5b6ff'}}>Thinking…</div>}</div>
-          {notice&&<div style={{fontSize:12,color:'#e8cfa3'}}>{notice}</div>}
-          <form onSubmit={e=>{e.preventDefault();void sendMessage();}} style={{display:'flex', gap:8}}><input style={input} value={draft} onChange={e=>setDraft(e.target.value)} placeholder={`Message ${active.name}…`} /><button disabled={busy} style={{...button, background:'#7961c9', opacity: busy ? 0.65 : 1}}>Send</button></form>
-        </div>
-      </section>}
+      <section id="popular-characters" style={{ scrollMarginTop: 15 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}><div><div style={{ fontSize: 11, color: '#bc83c3', letterSpacing: 2, fontWeight: 800, marginBottom: 5 }}>YOUR NEXT CONNECTION</div><h2 style={titleStyle}>{mood === 'All' ? 'Popular souls' : mood + ' souls'}</h2><p style={{ margin: '5px 0 0', color: '#97879b', fontSize: 13 }}>Original characters, each with a world of their own.</p></div><button style={button} onClick={() => { setMood('All'); setFilter(''); }}>See all ↗</button></div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,230px),1fr))', gap: 15 }}>{filtered.map((c, i) => <article key={c.id} style={{ ...panel, padding: 0, overflow: 'hidden', transition: 'transform .15s ease' }}>
+          <div style={{ position: 'relative', height: 175, display: 'grid', placeItems: 'center', overflow: 'hidden', background: `radial-gradient(ellipse at 50% 30%, ${c.color} 0%, ${c.color}88 45%, #fff4fb 100%)` }}>
+            <div style={{ position: 'absolute', width: 150, height: 150, borderRadius: '50%', border: '1px solid #ffffff99', top: 18, left: 'calc(50% - 75px)' }} />
+            <div style={{ position: 'absolute', width: 118, height: 118, borderRadius: '50%', border: '1px solid #ffffff99', top: 34, left: 'calc(50% - 59px)' }} />
+            <span style={{ position: 'relative', fontSize: 76, filter: 'drop-shadow(0 8px 10px #9e78a444)' }}>{c.emoji}</span>
+            <span style={{ position: 'absolute', top: 12, left: 12, background: '#ffffffd9', color: '#9e6fb1', borderRadius: 999, padding: '5px 9px', fontSize: 10, fontWeight: 800 }}>{c.category || 'Original'}</span>
+            <button aria-label={'Save ' + c.name} onClick={() => setNotice(c.name + ' is in your favourites list soon — this feature is coming next.')} style={{ position: 'absolute', right: 12, top: 10, border: '1px solid #ffffff99', background: '#ffffffcc', borderRadius: 99, width: 33, height: 33, color: '#bd83b9', fontSize: 17, cursor: 'pointer' }}>♡</button>
+          </div>
+          <div style={{ padding: 16 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}><h3 style={{ margin: 0, fontSize: 18, letterSpacing: '-.3px' }}>{c.name}</h3><span style={{ color: '#b28db9', fontSize: 11 }}>✦ Featured</span></div><p style={{ color: '#9b879e', fontSize: 12, margin: '5px 0 9px' }}>{c.tagline}</p><p style={{ color: '#786b80', fontSize: 13, lineHeight: 1.55, minHeight: 60, margin: '0 0 14px' }}>{c.bio}</p><button style={{ ...accentButton, width: '100%' }} onClick={() => openChat(c)}>Meet {c.name} <span style={{ marginLeft: 5 }}>↗</span></button></div>
+        </article>)}</div>
+        {filtered.length === 0 && <div style={{ ...panel, textAlign: 'center', color: '#8d7c92', padding: 35 }}>No characters found. Try another search or mood.</div>}
+      </section>
+      <section style={{ ...panel, marginTop: 26, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', background: 'linear-gradient(110deg,#f9e9f8,#fff2f5 55%,#fff9e9)' }}><div><div style={{ color: '#b47cbd', fontSize: 11, fontWeight: 800, letterSpacing: 1.7, marginBottom: 5 }}>YOUR STORY STARTS HERE</div><h2 style={{ ...titleStyle, fontSize: 22 }}>Can't find your kind of magic?</h2><p style={{ color: '#8e7b94', margin: '5px 0 0', fontSize: 13 }}>Create a soul with your own personality and backstory.</p></div><button style={accentButton} onClick={() => { setTab('create'); setNotice(''); }}>＋ Create your character</button></section>
+      {notice && <p role="status" style={{ color: '#9a68a7', fontSize: 12, textAlign: 'center', marginTop: 12 }}>{notice}</p>}
+    </div>}
 
-      {tab==='create' && <section style={{...panel, maxWidth:680, margin:'0 auto'}}><div style={{fontSize:11,letterSpacing:2,color:'#c5b6ff'}}>OWNDREAM CHARACTER LAB</div><h2>Create your own character</h2><p style={{color:'#bdb5cf', lineHeight:1.6}}>Give your fictional character a name, a personality and a backstory. This first version saves custom characters in this browser.</p><form onSubmit={e=>{e.preventDefault();createCharacter();}} style={{display:'grid',gap:14}}><label style={{fontSize:13}}>Character name<input style={{...input,marginTop:6}} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="e.g. Aria" maxLength={40}/></label><label style={{fontSize:13}}>Personality<input style={{...input,marginTop:6}} value={newPersonality} onChange={e=>setNewPersonality(e.target.value)} maxLength={160}/></label><label style={{fontSize:13}}>Backstory<textarea style={{...input,marginTop:6,minHeight:110,resize:'vertical'}} value={newBio} onChange={e=>setNewBio(e.target.value)} placeholder="What makes your character unique?" maxLength={600}/></label><button style={{...button,background:'#7961c9'}} type="submit">Create character</button>{notice&&<div style={{fontSize:13,color:'#c5b6ff'}}>{notice}</div>}</form></section>}
+    {tab === 'chat' && <section style={{ maxWidth: 800, margin: '30px auto' }}>
+      <div style={{ ...panel, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}><div style={{ width: 55, height: 55, display: 'grid', placeItems: 'center', borderRadius: 18, background: active.color, fontSize: 30 }}>{active.emoji}</div><div style={{ flex: 1 }}><h2 style={{ margin: '0 0 4px', fontSize: 20 }}>{active.name}</h2><div style={{ color: '#9b879e', fontSize: 12 }}>{active.tagline} · fictional AI companion</div></div><button style={button} onClick={() => setTab('discover')}>← Discover</button></div>
+      <div style={{ ...panel, minHeight: '55vh', display: 'flex', flexDirection: 'column', gap: 12 }}><div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>{messages.map((m, i) => <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', padding: '12px 15px', borderRadius: 18, lineHeight: 1.6, background: m.role === 'user' ? 'linear-gradient(110deg,#c49be9,#f0a9c8)' : '#f7eff9', color: m.role === 'user' ? '#fff' : '#594761', whiteSpace: 'pre-wrap' }}>{m.content}</div>)}{busy && <div style={{ color: '#a77db5', fontSize: 13 }}>✨ {active.name} is thinking…</div>}</div>
+        {notice && <div role="status" style={{ color: '#9a5b77', background: '#fff0f4', borderRadius: 12, padding: 11, fontSize: 12 }}>{notice}</div>}
+        <form onSubmit={e => { e.preventDefault(); void sendMessage(); }} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input aria-label={'Message ' + active.name} style={input} value={draft} onChange={e => setDraft(e.target.value)} placeholder={'Say something to ' + active.name + '…'} /><button disabled={busy} style={{ ...accentButton, opacity: busy ? .6 : 1 }}>Send ↗</button></form>
+        <div style={{ color: '#ab9aaf', fontSize: 11 }}>Chats are saved in this browser. AI replies need the free Groq API key configured on the server.</div>
+      </div>
+    </section>}
 
-      {tab==='studio' && <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,300px),1fr))',gap:14}}>
-        <div style={panel}><div style={{fontSize:34}}>🎨</div><h2>Image studio</h2><p style={{color:'#bdb5cf',lineHeight:1.6}}>Design prompts for character portraits, avatars, scenes, and anime-inspired artwork. Live image generation needs a configured provider with a free quota.</p><div style={{fontSize:12,color:'#e8cfa3',padding:'10px 12px',background:'rgba(255,193,139,.08)',borderRadius:10}}>Provider not connected · no charges enabled</div></div>
-        <div style={panel}><div style={{fontSize:34}}>🎬</div><h2>Video studio</h2><p style={{color:'#bdb5cf',lineHeight:1.6}}>Prepare text-to-video and image-to-video concepts, then track jobs and generated media once a free provider is configured.</p><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><span style={{...button,cursor:'default'}}>Text → video</span><span style={{...button,cursor:'default'}}>Image → video</span></div><div style={{marginTop:12,fontSize:12,color:'#e8cfa3',padding:'10px 12px',background:'rgba(255,193,139,.08)',borderRadius:10}}>Provider not connected · video generation disabled until a genuinely free quota is configured</div></div>
-        <div style={{...panel,gridColumn:'1 / -1'}}><h3>Free-tier safeguards</h3><ul style={{color:'#bdb5cf',lineHeight:1.8}}><li>No paid provider is called by this interface.</li><li>Chat uses the existing server endpoint and may fall back to demo replies when no API key is configured.</li><li>Conversation history and custom characters are stored in this browser in this prototype.</li><li>Before public launch, connect authentication and database policies so each user's data stays private.</li></ul></div>
-      </section>}
-      <footer style={{marginTop:28, padding:'16px 0', borderTop:'1px solid rgba(255,255,255,.1)', color:'#8f879f', fontSize:12, display:'flex', justifyContent:'space-between', gap:12, flexWrap:'wrap'}}><span>OwnDream.ai · Your AI character universe</span><span>Free-tier-first · Paid services disabled by default</span></footer>
-    </div>
+    {tab === 'create' && <section style={{ ...panel, maxWidth: 680, margin: '35px auto' }}><div style={{ color: '#b47cbd', fontSize: 11, letterSpacing: 2, fontWeight: 800 }}>THE CHARACTER LAB</div><h2 style={{ fontSize: 29, letterSpacing: '-1px', margin: '8px 0' }}>Dream up someone new ✨</h2><p style={{ color: '#8e7d93', lineHeight: 1.65 }}>Create an original character with their own personality and story. Your character is saved in this browser.</p><form onSubmit={e => { e.preventDefault(); createCharacter(); }} style={{ display: 'grid', gap: 15 }}><label style={{ fontSize: 13, fontWeight: 700 }}>Character name<input style={{ ...input, marginTop: 7 }} value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Aria" maxLength={40} /></label><label style={{ fontSize: 13, fontWeight: 700 }}>Personality<input style={{ ...input, marginTop: 7 }} value={newPersonality} onChange={e => setNewPersonality(e.target.value)} maxLength={160} /></label><label style={{ fontSize: 13, fontWeight: 700 }}>Backstory<textarea style={{ ...input, marginTop: 7, minHeight: 120, resize: 'vertical' }} value={newBio} onChange={e => setNewBio(e.target.value)} placeholder="What makes your character special?" maxLength={600} /></label><button style={accentButton} type="submit">Create my character ✦</button>{notice && <div role="status" style={{ color: '#9a68a7', fontSize: 13 }}>{notice}</div>}</form></section>}
+
+    {tab === 'studio' && <section style={{ maxWidth: 900, margin: '35px auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 15 }}>
+      <div style={panel}><div style={{ fontSize: 35, marginBottom: 10 }}>🎨</div><h2 style={titleStyle}>Image studio</h2><p style={{ color: '#8e7d93', lineHeight: 1.7, fontSize: 14 }}>Plan portraits, avatars and scene concepts with a reusable prompt. Actual image generation is not connected yet, and no paid API will be called.</p><label style={{ fontSize: 12, fontWeight: 700 }}>Image prompt<textarea style={{ ...input, minHeight: 105, marginTop: 7 }} placeholder="Describe the character, art style, lighting, pose and setting…" /></label><p style={{ color: '#b18ab9', fontSize: 11 }}>Prompt planning only · free mode</p></div>
+      <div style={panel}><div style={{ fontSize: 35, marginBottom: 10 }}>🎬</div><h2 style={titleStyle}>Video studio</h2><p style={{ color: '#8e7d93', lineHeight: 1.7, fontSize: 14 }}>Draft a short scene or animation concept before choosing a provider with a genuinely free quota.</p><label style={{ fontSize: 12, fontWeight: 700 }}>Scene idea<textarea style={{ ...input, minHeight: 105, marginTop: 7 }} placeholder="What happens in your scene?" /></label><p style={{ color: '#b18ab9', fontSize: 11 }}>Generation disabled until a free provider is available</p></div>
+      <div style={{ ...panel, gridColumn: '1 / -1', background: '#fbf5ff' }}><h3 style={{ marginTop: 0 }}>Free-first promise</h3><p style={{ color: '#8e7d93', lineHeight: 1.7, fontSize: 13, marginBottom: 0 }}>OwnDream chat uses Groq only when a server API key is configured. If the free quota is reached, it stops and asks you to try later — it does not switch to a paid service. Characters and conversations are currently saved in this browser.</p></div>
+    </section>}
+
+    <footer style={{ maxWidth: 1120, margin: '30px auto 0', padding: '18px 0 0', borderTop: '1px solid #eee3f0', color: '#a694ab', fontSize: 11, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}><span>✦ OwnDream.ai · A world of your own</span><span>Made for imagination · Free-tier-first</span></footer>
+
+    <nav aria-label="Mobile navigation" style={{ position: 'fixed', zIndex: 20, bottom: 12, left: '50%', transform: 'translateX(-50%)', width: 'min(460px, calc(100vw - 24px))', boxSizing: 'border-box', padding: '8px 9px', display: 'flex', justifyContent: 'space-around', gap: 5, background: '#ffffffed', backdropFilter: 'blur(14px)', border: '1px solid #eee2f1', borderRadius: 22, boxShadow: '0 9px 35px #6b426e22' }}>{navItems.map(n => <button key={n.id} onClick={() => { setTab(n.id); setNotice(''); }} style={{ flex: 1, border: 0, borderRadius: 15, background: tab === n.id ? '#f4e6fa' : 'transparent', color: tab === n.id ? '#a366b7' : '#a392a8', padding: '7px 4px 5px', cursor: 'pointer' }}><span style={{ display: 'block', fontSize: 22, lineHeight: 1.2 }}>{n.icon}</span><span style={{ display: 'block', fontSize: 10, marginTop: 3, fontWeight: tab === n.id ? 800 : 600 }}>{n.label}</span></button>)}</nav>
   </main>;
 }
