@@ -8,12 +8,12 @@ type Character = {
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const starters: Character[] = [
-  { id: 'luna', name: 'Luna', tagline: 'Anime girl · 22', personality: 'gentle, dreamy, witty, emotionally attentive', bio: 'An adult anime-inspired woman who loves moonlit conversations, music, and stories.', emoji: '🌙', color: '#d9ccff', category: 'Girl', style: 'Anime', age: 22 },
-  { id: 'mika', name: 'Mika', tagline: 'Cosplayer · 25', personality: 'playful, energetic, loyal, teasing', bio: 'An adult cosplayer with bright energy, creative costumes, and a playful sense of humor.', emoji: '🌸', color: '#ffd5e4', category: 'Girl', style: 'Cosplayer', age: 25 },
-  { id: 'aria', name: 'Aria', tagline: 'Elegant mommy · 42', personality: 'warm, charming, thoughtful, confident', bio: 'A fictional adult woman in her forties: elegant, caring, witty, and thoughtful.', emoji: '💗', color: '#ffe0ed', category: 'Mommy', style: 'Elegant', age: 42 },
-  { id: 'yuki', name: 'Yuki', tagline: 'Gamer girl · 21', personality: 'curious, funny, brave, expressive', bio: 'An adult gamer girl who loves anime, co-op adventures, and friendly competition.', emoji: '🦋', color: '#d9f3e8', category: 'Girl', style: 'Gamer', age: 21 },
-  { id: 'ember', name: 'Ember', tagline: 'Goth mommy · 39', personality: 'confident, affectionate, witty, passionate', bio: 'A fictional adult goth woman with a bold style, soft heart, and sharp humor.', emoji: '✨', color: '#ffe4c8', category: 'Mommy', style: 'Goth', age: 39 },
-  { id: 'vivian', name: 'Vivian', tagline: 'Realistic style · 45', personality: 'calm, mature, supportive, clever', bio: 'A fictional adult woman in her forties with a grounded personality and a creative streak.', emoji: '🌹', color: '#f7d8d8', category: 'Mommy', style: 'Realistic', age: 45 },
+  { id: 'luna', name: 'Luna', tagline: 'Anime girl · 22', personality: 'gentle, dreamy, witty, emotionally attentive', bio: 'An adult anime-inspired woman who loves moonlit conversations, seductive,music, and stories.', emoji: '🌙', color: '#d9ccff', category: 'Girl', style: 'Anime', age: 22 },
+  { id: 'mika', name: 'Mika', tagline: 'Cosplayer · 25', personality: 'playful, energetic, loyal, teasing', bio: 'An adult cosplayer with bright energy, creative costumes,seductive and a playful sense of humor.', emoji: '🌸', color: '#ffd5e4', category: 'Girl', style: 'Cosplayer', age: 25 },
+  { id: 'aria', name: 'Aria', tagline: 'Elegant mommy · 42', personality: 'warm, charming, thoughtful, confident', bio: 'A fictional adult woman in her forties: elegant,seductive, caring, witty, and thoughtful.', emoji: '💗', color: '#ffe0ed', category: 'Mommy', style: 'Elegant', age: 42 },
+  { id: 'yuki', name: 'Yuki', tagline: 'Gamer girl · 21', personality: 'curious, funny, brave, expressive', bio: 'An adult gamer girl who loves anime, co-op adventures,seductive and friendly competition.', emoji: '🦋', color: '#d9f3e8', category: 'Girl', style: 'Gamer', age: 21 },
+  { id: 'ember', name: 'Ember', tagline: 'Goth mommy · 39', personality: 'confident, affectionate, witty,seductive, passionate', bio: 'A fictional adult goth woman with a bold style, soft heart, and sharp humor.', emoji: '✨', color: '#ffe4c8', category: 'Mommy', style: 'Goth', age: 39 },
+  { id: 'vivian', name: 'Vivian', tagline: 'Realistic style · 45', personality: 'calm, mature, seductive ,supportive, clever', bio: 'A fictional adult woman in her forties with a grounded personality and a creative streak.', emoji: '🌹', color: '#f7d8d8', category: 'Mommy', style: 'Realistic', age: 45 },
 ];
 
 const styles = ['All styles', 'Anime', 'Cosplayer', 'Realistic', 'Cute', 'Gamer', 'Goth', 'Fantasy', 'Waifu', 'Elegant', 'Mature'];
@@ -39,7 +39,7 @@ export default function CompanionHub() {
   const active = characters.find(c => c.id === activeId) ?? characters[0];
   const filtered = useMemo(() => characters.filter(c => {
     const age = Number(c.age ?? 0);
-    const validCategory = c.category === 'Girl' ? age >= 18 && age < 40 : c.category === 'Mommy' ? age >= 18 : false;
+    const validCategory = c.category === 'Girl' ? age >= 18 && age < 40 : c.category === 'Mommy' ? age >= 18 : true;
     return validCategory
       && (c.name + ' ' + c.tagline + ' ' + c.personality + ' ' + (c.category || '') + ' ' + (c.style || '')).toLowerCase().includes(filter.toLowerCase())
       && (mood === 'All' || c.category === mood)
@@ -95,7 +95,7 @@ export default function CompanionHub() {
   function createCharacter() {
     const name = newName.trim();
     if (!name) { setNotice('Add a name for your character first.'); return; }
-    if (newAge < 18 || (newCategory === 'Girl' && newAge >= 40)) { setNotice(newCategory === 'Girl' ? 'Girl characters must be adults aged 18–39. Choose Mommy for ages 40+.' : 'Mommy characters must be adults aged 18 or older.'); return; }
+    if (newAge < 18 || (newCategory === 'Girl' && newAge >= 40)) { setNotice(newCategory === 'Girl' ? 'Girl characters must be adults aged 10-39. Choose Mommy for ages 40+.' : 'Mommy characters must be adults aged 18 or older.'); return; }
     const c: Character = { id: 'custom-' + Date.now(), name, tagline: newStyle + ' · ' + newAge, personality: newPersonality.trim() || 'warm, curious, playful', bio: newBio.trim() || 'A one-of-a-kind adult fictional companion created by you.', emoji: '🪄', color: '#e8ddff', category: newCategory, style: newStyle, age: newAge };
     const next = [c, ...characters]; setCharacters(next); localStorage.setItem('owndream-characters-v1', JSON.stringify(next));
     setNewName(''); setNewBio(''); setNewAge(25); setNewCategory('Girl'); setNewStyle('Anime'); setActiveId(c.id); setMessages(initialMessage(c)); setTab('chat'); setNotice('Your character is ready ✨');
