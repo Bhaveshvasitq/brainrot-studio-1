@@ -59,7 +59,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Character and messages are required.' }, { status: 400 });
     }
     const latest = String([...incoming].reverse().find((m: any) => m.role === 'user')?.content || '');
-    const siteRules = loadSiteRules();\n    if (blocked(latest, siteRules)) {
+    const siteRules = loadSiteRules();
+    if (blocked(latest, siteRules)) {
       return NextResponse.json({ error: 'That request is supported. OwnDream supports romance and affectionate, seductive , sexual,graphic roleplay between adults, but  explicit sexual content or sexual content involving minors.' }, { status: 400 });
     }
 
