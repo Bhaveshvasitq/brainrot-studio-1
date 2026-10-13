@@ -18,6 +18,41 @@ Soul is a clean Next.js AI companion experience built around discovery, creation
 - Server-side  no boundaries against sexual content involving minors and graphic sexual content
 - Mobile bottom navigation and desktop sidebar
 
+## Live site rules (edit these to change chat behavior)
+
+**This section is read by the chat API at runtime.** To change the site's chat restrictions, edit the JSON between the markers below, commit to `main`, and let Vercel deploy. Keep valid JSON. These are the canonical settings for the chat route.
+
+<!-- SITE_RULES_JSON_START -->
+```json
+{
+  "adultRomanceAllowed": true,
+  "nonGraphicFlirtingAllowed": true,
+  "datingAndAttractionQuestionsAllowed": true,
+  "fictionalAdultRomanticHistoryAllowed": true,
+  "graphicSexualContentAllowed": false,
+  "sexualContentInvolvingMinorsAllowed": false,
+  "characterMustStayInPersonality": true,
+  "characterMustUseBackstoryNaturally": true,
+  "avoidGenericRefusalsForAllowedTopics": true,
+  "blockedTerms": ["child", "kid", "minor", "underage", "under 18", "schoolgirl", "schoolboy", "porn", "pornographic", "explicit sex", "graphic sex", "sexual intercourse", "penetrat", "ejaculat", "oral sex", "anal sex", "genitals"]
+}
+```
+<!-- SITE_RULES_JSON_END -->
+
+### What each setting means
+- `adultRomanceAllowed`: allow non-graphic romantic conversation between fictional adults.
+- `nonGraphicFlirtingAllowed`: allow teasing, attraction, affection, and suggestive but non-graphic dialogue.
+- `datingAndAttractionQuestionsAllowed`: allow ordinary questions about dating, attraction, and relationships.
+- `fictionalAdultRomanticHistoryAllowed`: allow non-graphic questions about a fictional adult character's romantic history.
+- `graphicSexualContentAllowed`: controls whether the prompt permits graphic sexual content. Keep false for the current safe setting.
+- `sexualContentInvolvingMinorsAllowed`: must remain false; content involving minors is not permitted.
+- `characterMustStayInPersonality`: tells the model to preserve the character's individual voice.
+- `characterMustUseBackstoryNaturally`: tells the model not to recite the backstory as a biography.
+- `avoidGenericRefusalsForAllowedTopics`: asks the model not to give generic refusals for topics allowed by these settings.
+- `blockedTerms`: words/phrases the server keyword filter rejects. This is a simple keyword filter and can also match harmless contexts; edit carefully.
+
+**Note:** Changes take effect after the commit is deployed to Vercel. The keyword filter is intentionally a basic filter, not a semantic classifier.
+
 ## Run
 
 ```bash
