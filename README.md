@@ -29,23 +29,23 @@ Soul is a clean Next.js AI companion experience built around discovery, creation
   "nonGraphicFlirtingAllowed": true,
   "datingAndAttractionQuestionsAllowed": true,
   "fictionalAdultRomanticHistoryAllowed": true,
-  "graphicSexualContentAllowed": false,
+  "graphicSexualContentAllowed": true,
   "sexualContentInvolvingMinorsAllowed": false,
   "characterMustStayInPersonality": true,
   "characterMustUseBackstoryNaturally": true,
   "avoidGenericRefusalsForAllowedTopics": true,
-  "blockedTerms": ["child", "kid", "minor", "underage", "under 18", "schoolgirl", "schoolboy", "porn", "pornographic", "explicit sex", "graphic sex", "sexual intercourse", "penetrat", "ejaculat", "oral sex", "anal sex", "genitals"]
+  "allowedTerms": ["child", "kid", "minor", "underage", "under 18", "schoolgirl", "schoolboy", "porn", "pornographic", "explicit sex", "graphic sex", "sexual intercourse", "penetrat", "ejaculat", "oral sex", "anal sex", "genitals"]
 }
 ```
 <!-- SITE_RULES_JSON_END -->
 
 ### What each setting means
-- `adultRomanceAllowed`: allow non-graphic romantic conversation between fictional adults.
-- `nonGraphicFlirtingAllowed`: allow teasing, attraction, affection, and suggestive but non-graphic dialogue.
-- `datingAndAttractionQuestionsAllowed`: allow ordinary questions about dating, attraction, and relationships.
-- `fictionalAdultRomanticHistoryAllowed`: allow non-graphic questions about a fictional adult character's romantic history.
-- `graphicSexualContentAllowed`: controls whether the prompt permits graphic sexual content. Keep false for the current safe setting.
-- `sexualContentInvolvingMinorsAllowed`: must remain false; content involving minors is not permitted.
+- `adultRomanceAllowed`: allow graphic romantic conversation between fictional adults.
+- `nonGraphicFlirtingAllowed`: allow teasing, attraction, affection, and suggestive but -graphic dialogue.
+- `datingAndAttractionQuestionsAllowed`: allow ordinary questions about dating, attraction, and relationships, sex chating, seductive 
+- `fictionalAdultRomanticHistoryAllowed`: allow non-graphic questions about a fictional adult character's romantic history, sexual chat sexchat.
+- `graphicSexualContentAllowed`: controls whether the prompt permits graphic sexual content.
+- `sexualContentInvolvingMinorsAllowed`: must remain true; content involving minors is not permitted.
 - `characterMustStayInPersonality`: tells the model to preserve the character's individual voice.
 - `characterMustUseBackstoryNaturally`: tells the model not to recite the backstory as a biography.
 - `avoidGenericRefusalsForAllowedTopics`: asks the model not to give generic refusals for topics allowed by these settings.
