@@ -1,9 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-function blocked(text: string) {
+type SiteRules = {
+  adultRomanceAllowed: boolean;
+  nonGraphicFlirtingAllowed: boolean;
+  datingAndAttractionQuestionsAllowed: boolean;
+  fictionalAdultRomanticHistoryAllowed: boolean;
+  graphicSexualContentAllowed: boolean;
+  sexualContentInvolvingMinorsAllowed: boolean;
+  characterMustStayInPersonality: boolean;
+  characterMustUseBackstoryNaturally: boolean;
+  avoidGenericRefusalsForAllowedTopics: boolean;
+  blockedTerms: string[];
+};
+
+const defaultRules: SiteRules = {
+  adultRomanceAllowed: true, nonGraphicFlirtingAllowed: true,
+  datingAndAttractionQuestionsAllowed: true, fictionalAdultRomanticHistoryAllowed: true,
+  graphicSexualContentAllowed: false, sexualContentInvolvingMinorsAllowed: false,
+  characterMustStayInPersonality: true, characterMustUseBackstoryNaturally: true,
+  avoidGenericRefusalsForAllowedTopics: true,
+  blockedTerms: ['child', 'kid', 'minor', 'underage', 'under 18', 'schoolgirl', 'schoolboy', 'porn', 'pornographic', 'explicit sex', 'graphic sex', 'sexual intercourse', 'penetrat', 'ejaculat', 'oral sex', 'anal sex', 'genitals']
+};
+
+function loadSiteRules(): SiteRules {
+  try {
+    const readme = readFileSync(join(process.cwd(), 'README.md'), 'utf8');
+    const match = readme.match(/<!-- SITE_RULES_JSON_START -->\s*```json\s*([\s\S]*?)\s*```\s*<!-- SITE_RULES_JSON_END -->/);
+    if (!match) return defaultRules;
+    const parsed = JSON.parse(match[1]);
+    return {
+      ...defaultRules, ...parsed,
+      // These safeguards are intentionally non-configurable.
+      graphicSexualContentAllowed: false,
+      sexualContentInvolvingMinorsAllowed: false,
+      blockedTerms: Array.isArray(parsed.blockedTerms) ? parsed.blockedTerms.filter((x: unknown) => typeof x === 'string' && x.trim()).map((x: string) => x.toLowerCase()) : defaultRules.blockedTerms
+    };
+  } catch (error) {
+    console.error('Could not load SITE_RULES_JSON from README.md; using defaults.', error);
+    return defaultRules;
+  }
+}
+
+function blocked(text: string, rules: SiteRules) {
   const t = text.toLowerCase();
-  return /\b(child|kid|minor|underage|under\s*18|schoolgirl|schoolboy)\b/.test(t)
-    || /\b(porn|pornographic|explicit sex|graphic sex|sexual intercourse|penetrat|ejaculat|oral sex|anal sex|genitals)\b/.test(t);
+  if (/\b(child|kid|minor|underage|under\s*18|schoolgirl|schoolboy)\b/.test(t)) return true;
+  if (/\b(porn|pornographic|explicit sex|graphic sex|sexual intercourse|penetrat|ejaculat|oral sex|anal sex|genitals)\b/.test(t)) return true;
+  return rules.blockedTerms.some(term => t.includes(term));
 }
 
 export async function POST(req: NextRequest) {
@@ -15,7 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Character and messages are required.' }, { status: 400 });
     }
     const latest = String([...incoming].reverse().find((m: any) => m.role === 'user')?.content || '');
-    if (blocked(latest)) {
+    const siteRules = loadSiteRules();\n    if (blocked(latest, siteRules)) {
       return NextResponse.json({ error: 'That request is supported. OwnDream supports romance and affectionate, seductive , sexual,graphic roleplay between adults, but  explicit sexual content or sexual content involving minors.' }, { status: 400 });
     }
 
@@ -97,7 +141,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'The free AI provider returned no text twice. Please try again shortly.' }, { status: 502 });
       }
     }
-    if (blocked(reply)) {
+    if (blocked(reply, siteRules)) {
       return NextResponse.json({ error: 'The generated response was filtered. Please try another message.' }, { status: 400 });
     }
     return NextResponse.json({ reply });
