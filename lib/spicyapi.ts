@@ -92,6 +92,7 @@ export async function spicyCreateVideo(prompt: string, durationSeconds = 3) {
     method: 'POST',
     body: JSON.stringify({ model: process.env.SPICYAPI_VIDEO_MODEL || 'spicy-motion-3', prompt: prompt.trim().slice(0, 3000), duration, resolution: '480P' }),
   });
+}
 
 export async function spicyGetVideoTask(taskId: string) {
   if (!/^task_[a-zA-Z0-9_-]{4,100}$/.test(taskId)) throw new Error('Invalid video task id.');
