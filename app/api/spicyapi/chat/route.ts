@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const estimate = 0.01; // Conservative small pilot reservation; provider preflight and model caps still apply.
     reservationId = await reserveSpicySpend(userId, estimate, 'chat');
     providerRequestStarted = true;
-    const result = await spicyChat(safeMessages, 300);
+    const result = await spicyChat(safeMessages, 300, userId);
     const cost = Number((result as any)?.cost_usd);
     if (!Number.isFinite(cost)) throw new Error('PROVIDER_COST_MISSING');
     await settleSpicySpend(reservationId, cost, 'settled');
