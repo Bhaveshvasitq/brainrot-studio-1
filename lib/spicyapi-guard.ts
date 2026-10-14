@@ -8,6 +8,18 @@ export type AuthenticatedAdult = { userId: string };
 
 function env(name: string) { return process.env[name]?.trim() || ''; }
 
+export async function authenticateSignedInUser(request: Request): Promise<AuthenticatedAdult> {
+  const authorization = request.headers.get('authorization') || '';
+  const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
+  const url = env('NEXT_PUBLIC_SUPABASE_URL');
+  const anonKey = env('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+  if (!token || !url || !anonKey) throw new Error('AUTH_REQUIRED');
+  const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await authClient.auth.getUser(token);
+  if (error || !data.user) throw new Error('AUTH_REQUIRED');
+  return { userId };
+}
+
 export async function authenticateAdultRequest(request: Request): Promise<AuthenticatedAdult> {
   const authorization = request.headers.get('authorization') || '';
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -28,7 +40,7 @@ export async function authenticateAdultRequest(request: Request): Promise<Authen
   const { data: verification, error: verificationError } = await admin
     .from('adult_access_verifications')
     .select('user_id,status,verified_at')
-    .eq('user_id', data.user.id)
+    .eq('user_id', userId)
     .eq('status', 'verified')
     .not('verified_at', 'is', null)
     .maybeSingle();
