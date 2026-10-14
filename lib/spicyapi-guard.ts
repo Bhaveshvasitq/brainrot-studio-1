@@ -49,7 +49,7 @@ function assertBudgetConfiguration() {
   return { limit, pilot };
 }
 
-export async function reserveSpicySpend(userId: string, estimatedUsd: number) {
+export async function reserveSpicySpend(userId: string, estimatedUsd: number, feature: 'chat' | 'image' | 'voice' | 'video') {
   const { limit, pilot } = assertBudgetConfiguration();
   if (!Number.isFinite(estimatedUsd) || estimatedUsd <= 0 || estimatedUsd > pilot) throw new Error('REQUEST_EXCEEDS_PILOT_CAP');
   const url = env('NEXT_PUBLIC_SUPABASE_URL');
@@ -61,9 +61,32 @@ export async function reserveSpicySpend(userId: string, estimatedUsd: number) {
     p_estimated_usd: Number(estimatedUsd.toFixed(6)),
     p_monthly_limit_usd: limit,
     p_pilot_limit_usd: pilot,
+    p_feature: feature,
   });
   if (error || !data?.reservation_id) throw new Error('SPEND_LIMIT_REACHED_OR_LEDGER_UNAVAILABLE');
   return String(data.reservation_id);
+}
+
+export async function attachSpicyTask(userId: string, reservationId: string, taskId: string) {
+  const url = env('NEXT_PUBLIC_SUPABASE_URL');
+  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !serviceKey) throw new Error('SPEND_LEDGER_NOT_READY');
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error } = await admin.from('spicyapi_usage_ledger')
+    .update({ provider_request_id: taskId })
+    .eq('id', reservationId).eq('user_id', userId).eq('status', 'reserved');
+  if (error) throw new Error('SPEND_LEDGER_SETTLEMENT_FAILED');
+}
+
+export async function findSpicyTaskReservation(userId: string, taskId: string) {
+  const url = env('NEXT_PUBLIC_SUPABASE_URL');
+  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !serviceKey) throw new Error('SPEND_LEDGER_NOT_READY');
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await admin.from('spicyapi_usage_ledger')
+    .select('id,status').eq('provider_request_id', taskId).eq('user_id', userId).maybeSingle();
+  if (error || !data) throw new Error('VIDEO_TASK_NOT_FOUND');
+  return { reservationId: String(data.id), status: String(data.status) };
 }
 
 export async function settleSpicySpend(reservationId: string, actualUsd: number, outcome: 'settled' | 'failed') {
@@ -82,7 +105,7 @@ export async function settleSpicySpend(reservationId: string, actualUsd: number,
 export function publicSpicyError(error: unknown) {
   const message = error instanceof Error ? error.message : '';
   if (message === 'AUTH_REQUIRED') return { status: 401, error: 'Please sign in to use AI media.' };
-  if (message === 'AGE_VERIFICATION_REQUIRED') return { status: 403, error: 'Verified adult access is required for AI media.' };
+  if (message === 'VIDEO_TASK_NOT_FOUND') return { status: 404, error: 'Video task was not found for this account.' };\n  if (message === 'AGE_VERIFICATION_REQUIRED') return { status: 403, error: 'Verified adult access is required for AI media.' };
   if (message === 'PAID_PROVIDER_DISABLED' || message === 'SPEND_LEDGER_NOT_READY') return { status: 503, error: 'Paid AI generation is not enabled. No paid request was sent.' };
   if (message === 'SPEND_LIMIT_REACHED_OR_LEDGER_UNAVAILABLE' || message === 'REQUEST_EXCEEDS_PILOT_CAP') return { status: 429, error: 'The AI usage budget or pilot limit has been reached.' };
   if (message.includes('LIMIT_CONFIGURATION_INVALID')) return { status: 503, error: 'AI spending limits are not configured safely.' };
