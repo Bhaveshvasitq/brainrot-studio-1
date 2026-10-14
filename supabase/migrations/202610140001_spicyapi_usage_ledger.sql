@@ -39,7 +39,8 @@ create or replace function public.reserve_spicyapi_usage(
   p_user_id uuid,
   p_estimated_usd numeric,
   p_monthly_limit_usd numeric,
-  p_pilot_limit_usd numeric
+  p_pilot_limit_usd numeric,
+  p_feature text
 ) returns jsonb
 language plpgsql
 security definer
@@ -50,7 +51,7 @@ declare
   v_used numeric(12,6);
   v_id uuid;
 begin
-  if p_estimated_usd <= 0 or p_monthly_limit_usd <= 0 or p_pilot_limit_usd <= 0
+  if p_feature not in ('chat', 'image', 'voice', 'video') or p_estimated_usd <= 0 or p_monthly_limit_usd <= 0 or p_pilot_limit_usd <= 0
      or p_monthly_limit_usd > 50 or p_pilot_limit_usd > 10
      or p_estimated_usd > p_pilot_limit_usd then
     raise exception 'invalid_spend_limits';
@@ -72,7 +73,7 @@ begin
 
   insert into public.spicyapi_usage_ledger
     (user_id, reservation_month, reserved_usd, status, feature)
-  values (p_user_id, v_month, p_estimated_usd, 'reserved', 'chat')
+  values (p_user_id, v_month, p_estimated_usd, 'reserved', p_feature)
   returning id into v_id;
 
   return jsonb_build_object('reservation_id', v_id);
@@ -124,7 +125,7 @@ begin
 end;
 $$;
 
-revoke all on function public.reserve_spicyapi_usage(uuid,numeric,numeric,numeric) from public, anon, authenticated;
+revoke all on function public.reserve_spicyapi_usage(uuid,numeric,numeric,numeric,text) from public, anon, authenticated;
 revoke all on function public.settle_spicyapi_usage(uuid,numeric,text) from public, anon, authenticated;
-grant execute on function public.reserve_spicyapi_usage(uuid,numeric,numeric,numeric) to service_role;
+grant execute on function public.reserve_spicyapi_usage(uuid,numeric,numeric,numeric,text) to service_role;
 grant execute on function public.settle_spicyapi_usage(uuid,numeric,text) to service_role;
