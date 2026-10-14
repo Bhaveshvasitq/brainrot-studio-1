@@ -12,6 +12,22 @@ export default function MediaStudioPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('Paid generation is disabled until approval, age verification and budget controls are configured.');
+  const [reportText, setReportText] = useState('');
+  const [reportStatus, setReportStatus] = useState('');
+
+  async function submitReport() {
+    setReportStatus('');
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error('Sign in to submit a report.');
+      const response = await fetch('/api/media-report', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ contentType: feature, description: reportText, contentReference: result?.taskId || result?.requestId || null }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Report submission failed.');
+      setReportStatus(payload.message || 'Report submitted.');
+      setReportText('');
+    } catch (e) { setReportStatus(e instanceof Error ? e.message : 'Report submission failed.'); }
+  }
 
   async function submit() {
     setBusy(true);
@@ -91,6 +107,12 @@ export default function MediaStudioPage() {
           {result.taskId && <p style={{ color: '#c5bacd', fontSize: 13 }}>Video task: {result.taskId} · {result.status || 'processing'}</p>}
           {Number.isFinite(result.costUsd) && <p style={{ color: '#a99cb2', fontSize: 12 }}>Provider-reported cost: ${Number(result.costUsd).toFixed(4)} USD</p>}
         </section>}
+        <section style={{ marginTop: 22, padding: 18, borderRadius: 16, border: '1px solid #ffffff20', background: '#ffffff06' }}>
+          <h2 style={{ marginTop: 0, fontSize: 17 }}>Report unsafe content</h2>
+          <textarea value={reportText} onChange={e => setReportText(e.target.value)} minLength={10} maxLength={2000} placeholder="Describe the content or concern (10–2,000 characters)…" style={{ width: '100%', minHeight: 80, padding: 12, borderRadius: 10, border: '1px solid #ffffff25', background: '#100e17', color: '#fff', font: 'inherit', boxSizing: 'border-box' }} />
+          <button onClick={submitReport} disabled={reportText.trim().length < 10} style={{ marginTop: 10, border: '1px solid #ffffff25', borderRadius: 10, padding: '10px 14px', background: '#ffffff0c', color: '#fff', cursor: 'pointer' }}>Submit report</button>
+          {reportStatus && <p role="status" style={{ color: '#c5bacd', fontSize: 13 }}>{reportStatus}</p>}
+        </section>
       </div>
     </main>
   );
