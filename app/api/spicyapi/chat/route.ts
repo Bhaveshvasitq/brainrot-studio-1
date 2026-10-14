@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
     const safeMessages = messages.map((m: any) => ({ role: m.role, content: m.content.slice(0, 4000) }));
     const estimate = 0.01; // Conservative small pilot reservation; provider preflight and model caps still apply.
-    reservationId = await reserveSpicySpend(userId, estimate);
+    reservationId = await reserveSpicySpend(userId, estimate, 'chat');
     const result = await spicyChat(safeMessages, 300);
     const cost = Number((result as any)?.cost_usd);
     if (!Number.isFinite(cost)) throw new Error('PROVIDER_COST_MISSING');
