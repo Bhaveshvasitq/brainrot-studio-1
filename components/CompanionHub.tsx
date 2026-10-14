@@ -119,10 +119,28 @@ export default function CompanionHub() {
     } finally { setBusy(false); }
   }
 
+  function speakLastReply() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setNotice('Voice playback is not supported in this browser.');
+      return;
+    }
+    const lastReply = [...messages].reverse().find((message) => message.role === 'assistant')?.content;
+    if (!lastReply) {
+      setNotice('There is no companion reply to play yet.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(lastReply);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+    setNotice('Playing ' + active.name + '’s reply using your browser voice.');
+  }
+
   function createCharacter() {
     const name = newName.trim();
     if (!name) { setNotice('Add a name for your character first.'); return; }
-    if (newAge < 18 || (newCategory === 'Girl' && newAge >= 40)) { setNotice(newCategory === 'Girl' ? 'Girl characters must be adults aged 10-39. Choose Mommy for ages 40+.' : 'Mommy characters must be adults aged 18 or older.'); return; }
+    if (newAge < 18 || (newCategory === 'Girl' && newAge >= 40)) { setNotice(newCategory === 'Girl' ? 'Girl characters must be adults aged 18–39. Choose Mommy for ages 40+.' : 'Mommy characters must be adults aged 18 or older.'); return; }
     const c: Character = { id: 'custom-' + Date.now(), name, tagline: newStyle + ' · ' + newAge, personality: newPersonality.trim() || 'warm, curious, playful', bio: newBio.trim() || 'A one-of-a-kind adult fictional companion created by you.', emoji: '🪄', color: '#e8ddff', category: newCategory, style: newStyle, age: newAge };
     const next = [c, ...characters]; setCharacters(next); localStorage.setItem('owndream-characters-v1', JSON.stringify(next));
     setNewName(''); setNewBio(''); setNewAge(25); setNewCategory('Girl'); setNewStyle('Anime'); setActiveId(c.id); setMessages(initialMessage(c)); setTab('chat'); setNotice('Your character is ready ✨');
@@ -187,7 +205,10 @@ export default function CompanionHub() {
       <div style={{ ...panel, minHeight: '55vh', display: 'flex', flexDirection: 'column', gap: 12 }}><div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>{messages.map((m, i) => <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', padding: '12px 15px', borderRadius: 18, lineHeight: 1.6, background: m.role === 'user' ? 'linear-gradient(110deg,#c49be9,#f0a9c8)' : '#f7eff9', color: m.role === 'user' ? '#fff' : '#594761', whiteSpace: 'pre-wrap' }}>{m.content}</div>)}{busy && <div style={{ color: '#a77db5', fontSize: 13 }}>✨ {active.name} is thinking…</div>}</div>
         {notice && <div role="status" style={{ color: '#9a5b77', background: '#fff0f4', borderRadius: 12, padding: 11, fontSize: 12 }}>{notice}</div>}
         <form onSubmit={e => { e.preventDefault(); void sendMessage(); }} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input aria-label={'Message ' + active.name} style={input} value={draft} onChange={e => setDraft(e.target.value)} placeholder={'Say something to ' + active.name + '…'} /><button disabled={busy} style={{ ...accentButton, opacity: busy ? .6 : 1 }}>Send ↗</button></form>
-        <div style={{ color: '#ab9aaf', fontSize: 11 }}>Chats are saved in this browser. AI replies need the free Groq API key configured on the server.</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <button type="button" style={button} onClick={speakLastReply}>▶ Play latest reply</button>
+          <div style={{ color: '#ab9aaf', fontSize: 11 }}>Chats are saved in this browser. Voice playback uses your device; AI replies need the server Groq key.</div>
+        </div>
       </div>
     </section>}
 
