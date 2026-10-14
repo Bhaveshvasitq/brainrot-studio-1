@@ -103,7 +103,7 @@ export default function MediaStudioPage() {
           {result.reply && <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{result.reply}</p>}
           {Array.isArray(result.images) && result.images.map((image: any, index: number) => image.url ? <img key={image.url || index} src={image.url} alt="AI-generated fictional character" style={{ width: '100%', maxWidth: 600, borderRadius: 12, marginTop: 10 }} /> : null)}
           {result.audio?.url && <audio controls src={result.audio.url} style={{ width: '100%' }} />}
-          {result.output?.url && <video controls src={result.output.url} style={{ width: '100%', maxWidth: 700, borderRadius: 12 }} />}
+          {(result.output?.url || result.output?.video_url) && <video controls src={result.output.url || result.output.video_url} style={{ width: '100%', maxWidth: 700, borderRadius: 12 }} />}
           {result.taskId && <p style={{ color: '#c5bacd', fontSize: 13 }}>Video task: {result.taskId} · {result.status || 'processing'}</p>}
           {Number.isFinite(result.costUsd) && <p style={{ color: '#a99cb2', fontSize: 12 }}>Provider-reported cost: ${Number(result.costUsd).toFixed(4)} USD</p>}
         </section>}
