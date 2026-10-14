@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spicyCreateVideo } from '@/lib/spicyapi';
-import { authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
+import { attachSpicyTask, authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,11 +13,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A prompt of 1–3,000 characters is required.' }, { status: 400 });
     }
     const duration = Math.min(5, Math.max(3, Math.floor(Number(body?.durationSeconds) || 3)));
-    reservationId = await reserveSpicySpend(userId, duration * 0.10);
-    const result = await spicyCreateVideo(body.prompt, duration);
-    // Creation returns an async task; reserve the full estimated output price and settle only
-    // after a task poll confirms the provider's final cost. Do not report this as settled yet.
-    return NextResponse.json({ task: result, reservationId, estimatedCostUsd: duration * 0.10, status: 'processing' }, { status: 202 });
+    const estimatedCost = duration * 0.10;
+    reservationId = await reserveSpicySpend(userId, estimatedCost, 'video');
+    const task = await spicyCreateVideo(body.prompt, duration);
+    const taskId = String((task as any)?.id || '');
+    if (!/^task_[a-zA-Z0-9_-]{4,100}$/.test(taskId)) throw new Error('PROVIDER_TASK_ID_MISSING');
+    await attachSpicyTask(userId, reservationId, taskId);
+    // Usage remains reserved until the provider task reaches a terminal state and
+    // its settled cost/refund is confirmed by the task-poll endpoint.
+    return NextResponse.json({ taskId, status: (task as any)?.status || 'queued', estimatedCostUsd: estimatedCost }, { status: 202 });
   } catch (error) {
     if (reservationId) { try { await settleSpicySpend(reservationId, 0, 'failed'); } catch {} }
     const mapped = publicSpicyError(error);
