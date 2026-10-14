@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (typeof body?.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 4000) {
       return NextResponse.json({ error: 'A prompt of 1–4,000 characters is required.' }, { status: 400 });
     }
-    const prompt = assertAdultFictionPrompt(body.prompt);
+    const prompt = 'Depict only fictional adult characters aged 18 or older, all consenting. No identifiable real people or youth-coded characters. Scene: ' + assertAdultFictionPrompt(body.prompt);
     reservationId = await reserveSpicySpend(userId, 0.09, 'image');
     providerRequestStarted = true;
     const result = await spicyImage(prompt);
