@@ -1,0 +1,30 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { spicyImage } from '@/lib/spicyapi';
+import { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
+import { authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
+  let reservationId = '';
+  let providerRequestStarted = false;
+  try {
+    const { userId } = await authenticateAdultRequest(req);
+    const body = await req.json();
+    if (typeof body?.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 4000) {
+      return NextResponse.json({ error: 'A prompt of 1–4,000 characters is required.' }, { status: 400 });
+    }
+    const prompt = 'Depict only fictional adult characters aged 18 or older, all consenting. No identifiable real people or youth-coded characters. Scene: ' + assertAdultFictionPrompt(body.prompt);
+    reservationId = await reserveSpicySpend(userId, 0.09, 'image');
+    providerRequestStarted = true;
+    const result = await spicyImage(prompt);
+    const cost = Number((result as any)?.cost_usd);
+    if (!Number.isFinite(cost)) throw new Error('PROVIDER_COST_MISSING');
+    await settleSpicySpend(reservationId, cost, 'settled');
+    return NextResponse.json({ images: result.data || [], costUsd: cost, requestId: (result as any).id });
+  } catch (error) {
+    if (reservationId && !providerRequestStarted) { try { await settleSpicySpend(reservationId, 0, 'failed'); } catch {} }
+    const mapped = publicSpicyError(error);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+  }
+}

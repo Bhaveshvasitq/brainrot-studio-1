@@ -1,0 +1,35 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { spicyChat } from '@/lib/spicyapi';
+import { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
+import { authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
+  let reservationId = '';
+  let providerRequestStarted = false;
+  try {
+    const { userId } = await authenticateAdultRequest(req);
+    const body = await req.json();
+    const messages = Array.isArray(body?.messages) ? body.messages.slice(-12) : [];
+    if (!messages.length || messages.some((m: any) => !['user', 'assistant'].includes(m?.role) || typeof m?.content !== 'string')) {
+      return NextResponse.json({ error: 'Valid chat messages are required.' }, { status: 400 });
+    }
+    const safeMessages = [
+      { role: 'system' as const, content: 'You are a fictional AI companion, not a real person. Keep any adult content limited to fictional adults aged 18 or older, with clear consent. Never generate sexual content involving minors or youth-coded characters, sexual depictions of identifiable real people, non-consensual intimate imagery, sexual violence, bestiality, or other prohibited content. Be transparent that you are AI. If a user expresses imminent self-harm risk, respond supportively and direct them to local crisis resources.' },
+      ...messages.map((m: any) => ({ role: m.role, content: m.role === 'user' ? assertAdultFictionPrompt(m.content).slice(0, 4000) : m.content.slice(0, 4000) }))
+    ];
+    const estimate = 0.01; // Conservative small pilot reservation; provider preflight and model caps still apply.
+    reservationId = await reserveSpicySpend(userId, estimate, 'chat');
+    providerRequestStarted = true;
+    const result = await spicyChat(safeMessages, 300, userId);
+    const cost = Number((result as any)?.cost_usd);
+    if (!Number.isFinite(cost)) throw new Error('PROVIDER_COST_MISSING');
+    await settleSpicySpend(reservationId, cost, 'settled');
+    return NextResponse.json({ reply: result.choices?.[0]?.message?.content || '', usage: result.usage, costUsd: cost });
+  } catch (error) {
+    if (reservationId && !providerRequestStarted) { try { await settleSpicySpend(reservationId, 0, 'failed'); } catch {} }
+    const mapped = publicSpicyError(error);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+  }
+}
