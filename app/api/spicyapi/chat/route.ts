@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spicyChat } from '@/lib/spicyapi';\nimport { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
+import { spicyChat } from '@/lib/spicyapi';
+import { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
 import { authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
 
 export const dynamic = 'force-dynamic';
