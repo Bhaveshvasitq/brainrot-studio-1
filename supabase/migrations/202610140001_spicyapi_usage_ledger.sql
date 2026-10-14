@@ -74,7 +74,7 @@ begin
 
   -- Serialize all reservations for the current month so concurrent requests cannot
   -- race past the monthly ceiling.
-  perform pg_advisory_xact_lock(hashtext('spicyapi_usage_ledger'), hashtext(v_month::text));
+  perform pg_advisory_xact_lock(hashtext('spicyapi_usage_ledger'), 1);
   select coalesce(sum(case when status = 'reserved' then reserved_usd else actual_usd end), 0)
     into v_month_used
     from public.spicyapi_usage_ledger
@@ -120,6 +120,7 @@ begin
     raise exception 'invalid_settlement';
   end if;
 
+  perform pg_advisory_xact_lock(hashtext('spicyapi_usage_ledger'), 1);
   select * into v_row from public.spicyapi_usage_ledger
    where id = p_reservation_id for update;
   if not found or v_row.status <> 'reserved' then
