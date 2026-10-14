@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   let reservationId = '';
+  let providerResponded = false;
   try {
     const { userId } = await authenticateAdultRequest(req);
     const body = await req.json();
@@ -18,12 +19,13 @@ export async function POST(req: NextRequest) {
     const estimate = 0.01; // Conservative small pilot reservation; provider preflight and model caps still apply.
     reservationId = await reserveSpicySpend(userId, estimate, 'chat');
     const result = await spicyChat(safeMessages, 300);
+    providerResponded = true;
     const cost = Number((result as any)?.cost_usd);
     if (!Number.isFinite(cost)) throw new Error('PROVIDER_COST_MISSING');
     await settleSpicySpend(reservationId, cost, 'settled');
     return NextResponse.json({ reply: result.choices?.[0]?.message?.content || '', usage: result.usage, costUsd: cost });
   } catch (error) {
-    if (reservationId) { try { await settleSpicySpend(reservationId, 0, 'failed'); } catch {} }
+    if (reservationId && !providerResponded) { try { await settleSpicySpend(reservationId, 0, 'failed'); } catch {} }
     const mapped = publicSpicyError(error);
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
