@@ -35,6 +35,20 @@ create index if not exists spicyapi_usage_user_month_idx
 alter table public.spicyapi_usage_ledger enable row level security;
 -- Intentionally no client policies. Access via service-role RPC only.
 
+create table if not exists public.ai_media_reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_user_id uuid references auth.users(id) on delete set null,
+  content_type text not null check (content_type in ('chat', 'image', 'voice', 'video', 'other')),
+  content_reference text,
+  description text not null check (char_length(description) between 10 and 2000),
+  status text not null default 'open' check (status in ('open', 'reviewing', 'actioned', 'dismissed')),
+  created_at timestamptz not null default now(),
+  reviewed_at timestamptz
+);
+alter table public.ai_media_reports enable row level security;
+-- Reports are written by the server-side service role only. No public read policy.
+create index if not exists ai_media_reports_open_idx on public.ai_media_reports(status, created_at);
+
 create or replace function public.reserve_spicyapi_usage(
   p_user_id uuid,
   p_estimated_usd numeric,
