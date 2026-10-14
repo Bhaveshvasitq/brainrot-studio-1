@@ -167,6 +167,7 @@ export default function CompanionHub() {
       </button>
       <nav style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{navItems.map(n => <button key={n.id} onClick={() => setTab(n.id)} style={{ ...button, borderColor: tab === n.id ? '#e7c8eb' : 'transparent', background: tab === n.id ? '#f5e8fb' : 'transparent', color: tab === n.id ? '#9c5ab6' : '#806e85', padding: '9px 12px' }}>{n.label}</button>)}</nav>
       <a href="/pricing" style={{ ...button, textDecoration: 'none', whiteSpace: 'nowrap' }}>Plans · $20–$70</a>
+      <a href="/inspiration" style={{ ...button, textDecoration: 'none', whiteSpace: 'nowrap' }}>Similar sites</a>
     </header>
 
     {tab === 'discover' && <div style={{ maxWidth: 1120, margin: '0 auto' }}>
