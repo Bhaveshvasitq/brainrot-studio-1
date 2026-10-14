@@ -12,10 +12,13 @@ export async function POST(req: NextRequest) {
     const { userId } = await authenticateAdultRequest(req);
     const body = await req.json();
     const messages = Array.isArray(body?.messages) ? body.messages.slice(-12) : [];
-    if (!messages.length || messages.some((m: any) => !['user', 'assistant', 'system'].includes(m?.role) || typeof m?.content !== 'string')) {
+    if (!messages.length || messages.some((m: any) => !['user', 'assistant'].includes(m?.role) || typeof m?.content !== 'string')) {
       return NextResponse.json({ error: 'Valid chat messages are required.' }, { status: 400 });
     }
-    const safeMessages = messages.map((m: any) => ({ role: m.role, content: m.role === 'user' ? assertAdultFictionPrompt(m.content).slice(0, 4000) : m.content.slice(0, 4000) }));
+    const safeMessages = [
+      { role: 'system' as const, content: 'You are a fictional AI companion, not a real person. Keep any adult content limited to fictional adults aged 18 or older, with clear consent. Never generate sexual content involving minors or youth-coded characters, sexual depictions of identifiable real people, non-consensual intimate imagery, sexual violence, bestiality, or other prohibited content. Be transparent that you are AI. If a user expresses imminent self-harm risk, respond supportively and direct them to local crisis resources.' },
+      ...messages.map((m: any) => ({ role: m.role, content: m.role === 'user' ? assertAdultFictionPrompt(m.content).slice(0, 4000) : m.content.slice(0, 4000) }))
+    ];
     const estimate = 0.01; // Conservative small pilot reservation; provider preflight and model caps still apply.
     reservationId = await reserveSpicySpend(userId, estimate, 'chat');
     providerRequestStarted = true;
