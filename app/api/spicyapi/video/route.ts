@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (typeof body?.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 3000) {
       return NextResponse.json({ error: 'A prompt of 1–3,000 characters is required.' }, { status: 400 });
     }
-    const prompt = assertAdultFictionPrompt(body.prompt);
+    const prompt = 'Depict only fictional adult characters aged 18 or older, all consenting. No identifiable real people or youth-coded characters. Scene: ' + assertAdultFictionPrompt(body.prompt);
     const duration = Math.min(5, Math.max(3, Math.floor(Number(body?.durationSeconds) || 3)));
     const estimatedCost = duration * 0.10;
     reservationId = await reserveSpicySpend(userId, estimatedCost, 'video');
