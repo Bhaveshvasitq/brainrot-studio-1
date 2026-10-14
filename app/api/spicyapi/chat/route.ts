@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spicyChat } from '@/lib/spicyapi';
+import { spicyChat } from '@/lib/spicyapi';\nimport { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
 import { authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     if (!messages.length || messages.some((m: any) => !['user', 'assistant', 'system'].includes(m?.role) || typeof m?.content !== 'string')) {
       return NextResponse.json({ error: 'Valid chat messages are required.' }, { status: 400 });
     }
-    const safeMessages = messages.map((m: any) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    const safeMessages = messages.map((m: any) => ({ role: m.role, content: m.role === 'user' ? assertAdultFictionPrompt(m.content).slice(0, 4000) : m.content.slice(0, 4000) }));
     const estimate = 0.01; // Conservative small pilot reservation; provider preflight and model caps still apply.
     reservationId = await reserveSpicySpend(userId, estimate, 'chat');
     const result = await spicyChat(safeMessages, 300);
