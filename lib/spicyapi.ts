@@ -58,13 +58,13 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   return data as T;
 }
 
-export async function spicyChat(messages: SpicyChatMessage[], maxTokens = 500) {
+export async function spicyChat(messages: SpicyChatMessage[], maxTokens = 500, userId?: string) {
   if (!Array.isArray(messages) || messages.length === 0) throw new Error('At least one chat message is required.');
   return request<{ choices?: Array<{ message?: { content?: string } }>; usage?: unknown }>('/chat/completions', {
     method: 'POST',
     body: JSON.stringify({
       model: process.env.SPICYAPI_CHAT_MODEL || 'spicy-companion-1-flash',
-      messages, temperature: 0.8, max_tokens: Math.min(700, Math.max(1, Math.floor(maxTokens))), n: 1,
+      messages, temperature: 0.8, max_tokens: Math.min(700, Math.max(1, Math.floor(maxTokens))), n: 1, safety_mode: 'companion', ...(userId ? { user: userId } : {}),
     }),
   });
 }
