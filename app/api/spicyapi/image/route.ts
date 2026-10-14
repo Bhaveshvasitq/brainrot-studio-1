@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spicyImage } from '@/lib/spicyapi';
+import { spicyImage } from '@/lib/spicyapi';\nimport { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
 import { authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
 
 export const dynamic = 'force-dynamic';
@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     if (typeof body?.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 4000) {
       return NextResponse.json({ error: 'A prompt of 1–4,000 characters is required.' }, { status: 400 });
     }
-    reservationId = await reserveSpicySpend(userId, 0.09, 'image');
-    const result = await spicyImage(body.prompt);
+    const prompt = assertAdultFictionPrompt(body.prompt);\n    reservationId = await reserveSpicySpend(userId, 0.09, 'image');
+    const result = await spicyImage(prompt);
     const cost = Number((result as any)?.cost_usd);
     if (!Number.isFinite(cost)) throw new Error('PROVIDER_COST_MISSING');
     await settleSpicySpend(reservationId, cost, 'settled');
