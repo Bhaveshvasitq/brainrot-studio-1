@@ -67,7 +67,7 @@ export async function spicyImage(prompt: string) {
   if (!prompt.trim()) throw new Error('An image prompt is required.');
   return request<{ data?: Array<{ url?: string }> }>('/images/generations', {
     method: 'POST',
-    body: JSON.stringify({ model: process.env.SPICYAPI_IMAGE_MODEL || 'spicy-image-1', prompt: prompt.trim().slice(0, 3000), n: 1, size: '1024x1024' }),
+    body: JSON.stringify({ model: process.env.SPICYAPI_IMAGE_MODEL || 'spicy-image-1', prompt: prompt.trim().slice(0, 3000), n: 1, size: '1024*1024' }),
   });
 }
 
@@ -75,7 +75,7 @@ export async function spicySpeech(input: string) {
   if (!input.trim()) throw new Error('Speech text is required.');
   return request<Record<string, unknown>>('/audio/speech', {
     method: 'POST',
-    body: JSON.stringify({ model: process.env.SPICYAPI_VOICE_MODEL || 'spicy-voice-1', input: input.trim().slice(0, 4000), voice: process.env.SPICYAPI_VOICE_ID || 'alloy', response_format: 'mp3' }),
+    body: JSON.stringify({ model: process.env.SPICYAPI_VOICE_MODEL || 'spicy-voice-2', input: input.trim().slice(0, 4000), voice: process.env.SPICYAPI_VOICE_ID || 'Eva', response_format: 'mp3' }),
   });
 }
 
@@ -84,6 +84,10 @@ export async function spicyCreateVideo(prompt: string, durationSeconds = 3) {
   const duration = Math.min(5, Math.max(3, Math.floor(durationSeconds)));
   return request<Record<string, unknown>>('/videos/generations', {
     method: 'POST',
-    body: JSON.stringify({ model: process.env.SPICYAPI_VIDEO_MODEL || 'spicy-motion-3', prompt: prompt.trim().slice(0, 3000), duration, resolution: '480p' }),
+    body: JSON.stringify({ model: process.env.SPICYAPI_VIDEO_MODEL || 'spicy-motion-3', prompt: prompt.trim().slice(0, 3000), duration, resolution: '480P' }),
   });
+
+export async function spicyGetVideoTask(taskId: string) {
+  if (!/^task_[a-zA-Z0-9_-]{4,100}$/.test(taskId)) throw new Error('Invalid video task id.');
+  return request<Record<string, unknown>>(`/videos/tasks/${encodeURIComponent(taskId)}`, { method: 'GET' });
 }
