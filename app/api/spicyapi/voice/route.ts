@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   let reservationId = '';
-  let providerResponded = false;
+  let providerRequestStarted = false;
   try {
     const { userId } = await authenticateAdultRequest(req);
     const body = await req.json();
@@ -16,14 +16,14 @@ export async function POST(req: NextRequest) {
     }
     const text = assertAdultFictionPrompt(body.text);
     reservationId = await reserveSpicySpend(userId, 0.20, 'voice');
+    providerRequestStarted = true;
     const result = await spicySpeech(text);
-    providerResponded = true;
     const cost = Number((result as any)?.cost_usd);
     if (!Number.isFinite(cost)) throw new Error('PROVIDER_COST_MISSING');
     await settleSpicySpend(reservationId, cost, 'settled');
     return NextResponse.json({ audio: result, costUsd: cost });
   } catch (error) {
-    if (reservationId && !providerResponded) { try { await settleSpicySpend(reservationId, 0, 'failed'); } catch {} }
+    if (reservationId && !providerRequestStarted) { try { await settleSpicySpend(reservationId, 0, 'failed'); } catch {} }
     const mapped = publicSpicyError(error);
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
