@@ -5,7 +5,7 @@ Status: **scaffolding only; paid calls are not approved or enabled by default.**
 ## Spending rules
 
 - Monthly AI-provider budget ceiling: ₹5,000 across all providers.
-- Proposed first SpicyAPI pilot ceiling: US$10 (about ₹951 before FX spread, taxes, or payment fees); this is a proposed cap, not purchase authorization.
+- Proposed first SpicyAPI pilot ceiling: US$10 (about ₹951 before FX spread, taxes, or payment fees); this is a cumulative pilot cap, not purchase authorization. Any new pilot allowance requires a separate explicit approval.
 - Manual top-ups only. Never implement automatic top-ups.
 - Do not buy credits, enter payment details, create/activate paid keys, or incur charges until the user reviews the exact provider, current pricing and checkout total and explicitly approves the purchase.
 - Existing monthly plans remain Starter $20, Pro $40 and Ultimate $70. Subscription prices are separate from provider costs; checkout is not implied to be live.
