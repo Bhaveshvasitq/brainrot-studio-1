@@ -10,32 +10,21 @@ function env(name: string) { return process.env[name]?.trim() || ''; }
 
 export async function authenticateSignedInUser(request: Request): Promise<AuthenticatedAdult> {
   const authorization = request.headers.get('authorization') || '';
-  const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
+  const token = authorization.match(/^Bearer\\s+(.+)$/i)?.[1];
   const url = env('NEXT_PUBLIC_SUPABASE_URL');
   const anonKey = env('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
   if (!token || !url || !anonKey) throw new Error('AUTH_REQUIRED');
   const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data, error } = await authClient.auth.getUser(token);
   if (error || !data.user) throw new Error('AUTH_REQUIRED');
-  return { userId };
+  return { userId: data.user.id };
 }
 
 export async function authenticateAdultRequest(request: Request): Promise<AuthenticatedAdult> {
-  const authorization = request.headers.get('authorization') || '';
-  const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
+  const { userId } = await authenticateSignedInUser(request);
   const url = env('NEXT_PUBLIC_SUPABASE_URL');
-  const anonKey = env('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
-  if (!token || !url || !anonKey || !serviceKey) {
-    throw new Error('AUTH_REQUIRED');
-  }
-
-  const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await authClient.auth.getUser(token);
-  if (error || !data.user) throw new Error('AUTH_REQUIRED');
-
-  // Do not trust user-editable metadata for age checks. This table must be populated
-  // by the application's approved age-verification workflow.
+  if (!serviceKey) throw new Error('AGE_VERIFICATION_REQUIRED');
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: verification, error: verificationError } = await admin
     .from('adult_access_verifications')
@@ -45,8 +34,7 @@ export async function authenticateAdultRequest(request: Request): Promise<Authen
     .not('verified_at', 'is', null)
     .maybeSingle();
   if (verificationError || !verification) throw new Error('AGE_VERIFICATION_REQUIRED');
-
-  return { userId: data.user.id };
+  return { userId };
 }
 
 function assertBudgetConfiguration() {
