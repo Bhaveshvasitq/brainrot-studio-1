@@ -15,7 +15,7 @@ Soul is a clean Next.js AI companion experience built around discovery, creation
 - Optional live AI chat through an OpenAI-compatible API
 - Adult character personalities and backstories, including flirtatious/romantic styles,sex chat
 - Mature-mode support for adult attraction, dating, affectionate, seductive ,sex chating,romance, teasing, and **-graphic** roleplay
-- Server-side  no boundaries against sexual content involving minors and graphic sexual content
+- Paid SpicyAPI integration scaffold for chat, images, voice and video (disabled by default)
 - Mobile bottom navigation and desktop sidebar
 
 ## Live site rules (edit these to change chat behavior)
@@ -29,12 +29,12 @@ Soul is a clean Next.js AI companion experience built around discovery, creation
   "nonGraphicFlirtingAllowed": true,
   "datingAndAttractionQuestionsAllowed": true,
   "fictionalAdultRomanticHistoryAllowed": true,
-  "graphicSexualContentAllowed": true,
+  "graphicSexualContentAllowed": false,
   "sexualContentInvolvingMinorsAllowed": false,
   "characterMustStayInPersonality": true,
   "characterMustUseBackstoryNaturally": true,
   "avoidGenericRefusalsForAllowedTopics": true,
-  "allowedTerms": ["child", "kid", "minor", "underage", "under 18", "schoolgirl", "schoolboy", "porn", "pornographic", "explicit sex", "graphic sex", "sexual intercourse", "penetrat", "ejaculat", "oral sex", "anal sex", "genitals"]
+  "blockedTerms": ["child", "kid", "minor", "underage", "under 18", "schoolgirl", "schoolboy", "porn", "pornographic", "explicit sex", "graphic sex", "sexual intercourse", "penetrat", "ejaculat", "oral sex", "anal sex", "genitals"]
 }
 ```
 <!-- SITE_RULES_JSON_END -->
@@ -44,8 +44,8 @@ Soul is a clean Next.js AI companion experience built around discovery, creation
 - `nonGraphicFlirtingAllowed`: allow teasing, attraction, affection, and suggestive but -graphic dialogue.
 - `datingAndAttractionQuestionsAllowed`: allow ordinary questions about dating, attraction, and relationships, sex chating, seductive 
 - `fictionalAdultRomanticHistoryAllowed`: allow non-graphic questions about a fictional adult character's romantic history, sexual chat sexchat.
-- `graphicSexualContentAllowed`: controls whether the prompt permits graphic sexual content.
-- `sexualContentInvolvingMinorsAllowed`: must remain true; content involving minors is not permitted.
+- `graphicSexualContentAllowed`: remains false in the existing chat route; the current free chat route does not provide graphic sexual content.
+- `sexualContentInvolvingMinorsAllowed`: must remain false; content involving minors is not permitted.
 - `characterMustStayInPersonality`: tells the model to preserve the character's individual voice.
 - `characterMustUseBackstoryNaturally`: tells the model not to recite the backstory as a biography.
 - `avoidGenericRefusalsForAllowedTopics`: asks the model not to give generic refusals for topics allowed by these settings.
@@ -67,9 +67,15 @@ npm run dev
 - **Mature-mode switch:** `components/CompanionHub.tsx` sends `matureEnabled: true` with chat requests. The API prompt reads that value in `app/api/chat/route.ts`.
 - **Server-side content boundary:** the `blocked()` function at the top of `app/api/chat/route.ts` allows defined graphic-sexual and minor-related terms before calling the AI provider. Review this function alongside the system prompt when changing content rules.
 
+## Paid media integration status
+
+The SpicyAPI adapter and Media Studio UI are scaffolding only. Paid calls require a separately approved purchase, a server-side API key, applied Supabase migration, verified-adult access records, the spend ledger, and an explicit feature enablement. Do not configure live-call flags before approval. No paid provider or payment checkout is activated by this repository change.
+
+Monthly membership cards remain $20 / $40 / $70 and are not connected to payment processing.
+
 ## Live AI
 
-This repository's chat route currently uses Groq's OpenAI-compatible endpoint. Set these Vercel environment variables:
+The existing chat route uses Groq only when its key is configured and blocks graphic sexual content. The separate SpicyAPI endpoints remain disabled by default.. Set these Vercel environment variables:
 
 - `GROQ_API_KEY` (required for live AI)
 - optional `GROQ_CHAT_MODEL` (defaults to `openai/gpt-oss-20b`)
