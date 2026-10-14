@@ -15,11 +15,15 @@ export function spicyApiStatus() {
   const keyPresent = Boolean(process.env.SPICYAPI_API_KEY);
   const explicitlyEnabled = process.env.SPICYAPI_LIVE_CALLS_ENABLED === 'true';
   const approvalMarkerPresent = Boolean(process.env.SPICYAPI_PURCHASE_APPROVAL_ID?.trim());
+  const ledgerReady = process.env.SPICYAPI_SPEND_LEDGER_READY === 'true';
+  const monthlyLimit = Number(process.env.SPICYAPI_MONTHLY_SPEND_LIMIT_USD);
+  const pilotLimit = Number(process.env.SPICYAPI_PILOT_SPEND_LIMIT_USD);
+  const budgetConfigured = Number.isFinite(monthlyLimit) && monthlyLimit > 0 && monthlyLimit <= 50 && Number.isFinite(pilotLimit) && pilotLimit > 0 && pilotLimit <= 10 && pilotLimit <= monthlyLimit;
   return {
     provider: 'spicyapi',
     configured: keyPresent,
-    enabled: keyPresent && explicitlyEnabled && approvalMarkerPresent,
-    liveCallsEnabled: keyPresent && explicitlyEnabled && approvalMarkerPresent,
+    enabled: keyPresent && explicitlyEnabled && approvalMarkerPresent && ledgerReady && budgetConfigured,
+    liveCallsEnabled: keyPresent && explicitlyEnabled && approvalMarkerPresent && ledgerReady && budgetConfigured,
     monthlySpendLimitUsd: null as number | null,
     note: 'Live calls remain disabled unless separately approved and server configuration is completed.',
   };
@@ -29,7 +33,9 @@ function assertLiveCallsAllowed() {
   const status = spicyApiStatus();
   if (!status.enabled) throw new SpicyApiDisabledError();
   const limit = Number(process.env.SPICYAPI_MONTHLY_SPEND_LIMIT_USD);
-  if (!Number.isFinite(limit) || limit <= 0) {
+  const pilot = Number(process.env.SPICYAPI_PILOT_SPEND_LIMIT_USD);
+  if (process.env.SPICYAPI_SPEND_LEDGER_READY !== 'true' || !Number.isFinite(pilot) || pilot <= 0 || pilot > 10 || pilot > limit) throw new Error('Spend ledger or pilot cap is not configured safely.');
+  if (!Number.isFinite(limit) || limit <= 0 || limit > 50) {
     throw new Error('Missing positive SPICYAPI_MONTHLY_SPEND_LIMIT_USD hard limit.');
   }
   if (!process.env.SPICYAPI_API_KEY) throw new SpicyApiDisabledError();
