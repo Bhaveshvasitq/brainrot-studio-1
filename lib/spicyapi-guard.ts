@@ -102,10 +102,25 @@ export async function settleSpicySpend(reservationId: string, actualUsd: number,
   if (error) throw new Error('SPEND_LEDGER_SETTLEMENT_FAILED');
 }
 
+export async function recordMediaReport(userId: string, contentType: 'chat' | 'image' | 'voice' | 'video' | 'other', contentReference: string | null, description: string) {
+  const url = env('NEXT_PUBLIC_SUPABASE_URL');
+  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !serviceKey) throw new Error('REPORTING_NOT_CONFIGURED');
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error } = await admin.from('ai_media_reports').insert({
+    reporter_user_id: userId,
+    content_type: contentType,
+    content_reference: contentReference,
+    description,
+  });
+  if (error) throw new Error('REPORT_SUBMISSION_FAILED');
+}
+
 export function publicSpicyError(error: unknown) {
   const message = error instanceof Error ? error.message : '';
   if (message === 'AUTH_REQUIRED') return { status: 401, error: 'Please sign in to use AI media.' };
   if (message.startsWith('CONTENT_POLICY_BLOCK:')) return { status: 422, error: 'This prompt conflicts with Soul’s adult-content policy.' };
+  if (message === 'REPORTING_NOT_CONFIGURED' || message === 'REPORT_SUBMISSION_FAILED') return { status: 503, error: 'Reporting is temporarily unavailable. Please try again later.' };
   if (message === 'VIDEO_TASK_NOT_FOUND') return { status: 404, error: 'Video task was not found for this account.' };
   if (message === 'AGE_VERIFICATION_REQUIRED') return { status: 403, error: 'Verified adult access is required for AI media.' };
   if (message === 'PAID_PROVIDER_DISABLED' || message === 'SPEND_LEDGER_NOT_READY') return { status: 503, error: 'Paid AI generation is not enabled. No paid request was sent.' };
