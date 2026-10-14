@@ -28,7 +28,7 @@ export default function PricingPage() {
     <main style={styles.page}>
       <header style={styles.header}>
         <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontSize: 22, fontWeight: 950, letterSpacing: '-.7px' }}>✦ Soul<span style={{ color: '#e8a3f5' }}>.</span></Link>
-        <Link href="/" style={styles.link}>Back to companions</Link>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Link href="/media-studio" style={styles.link}>Media Studio</Link><Link href="/" style={styles.link}>Back to companions</Link></div>
       </header>
       <section style={styles.hero}>
         <span style={styles.eyebrow}>Memberships · billed monthly</span>
