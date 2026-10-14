@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spicyCreateVideo } from '@/lib/spicyapi';\nimport { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
+import { spicyCreateVideo } from '@/lib/spicyapi';
+import { assertAdultFictionPrompt } from '@/lib/spicyapi-safety';
 import { attachSpicyTask, authenticateAdultRequest, publicSpicyError, reserveSpicySpend, settleSpicySpend } from '@/lib/spicyapi-guard';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +13,8 @@ export async function POST(req: NextRequest) {
     if (typeof body?.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 3000) {
       return NextResponse.json({ error: 'A prompt of 1–3,000 characters is required.' }, { status: 400 });
     }
-    const prompt = assertAdultFictionPrompt(body.prompt);\n    const duration = Math.min(5, Math.max(3, Math.floor(Number(body?.durationSeconds) || 3)));
+    const prompt = assertAdultFictionPrompt(body.prompt);
+    const duration = Math.min(5, Math.max(3, Math.floor(Number(body?.durationSeconds) || 3)));
     const estimatedCost = duration * 0.10;
     reservationId = await reserveSpicySpend(userId, estimatedCost, 'video');
     const task = await spicyCreateVideo(prompt, duration);
