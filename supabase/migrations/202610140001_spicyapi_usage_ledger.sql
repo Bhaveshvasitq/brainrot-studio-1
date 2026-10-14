@@ -62,7 +62,8 @@ set search_path = public, pg_temp
 as $$
 declare
   v_month date := date_trunc('month', now())::date;
-  v_used numeric(12,6);
+  v_month_used numeric(12,6);
+  v_pilot_used numeric(12,6);
   v_id uuid;
 begin
   if p_feature not in ('chat', 'image', 'voice', 'video') or p_estimated_usd <= 0 or p_monthly_limit_usd <= 0 or p_pilot_limit_usd <= 0
@@ -75,13 +76,18 @@ begin
   -- race past the monthly ceiling.
   perform pg_advisory_xact_lock(hashtext('spicyapi_usage_ledger'), hashtext(v_month::text));
   select coalesce(sum(case when status = 'reserved' then reserved_usd else actual_usd end), 0)
-    into v_used
+    into v_month_used
     from public.spicyapi_usage_ledger
-   where reservation_month = v_month
-     and status in ('reserved', 'settled');
+   where reservation_month = v_month and status in ('reserved', 'settled');
 
-  if v_used + p_estimated_usd > p_monthly_limit_usd
-     or v_used + p_estimated_usd > p_pilot_limit_usd then
+  -- Pilot allowance is lifetime cumulative until a new approval/pilot is explicitly configured.
+  select coalesce(sum(case when status = 'reserved' then reserved_usd else actual_usd end), 0)
+    into v_pilot_used
+    from public.spicyapi_usage_ledger
+   where status in ('reserved', 'settled');
+
+  if v_month_used + p_estimated_usd > p_monthly_limit_usd
+     or v_pilot_used + p_estimated_usd > p_pilot_limit_usd then
     raise exception 'spend_limit_reached';
   end if;
 
@@ -107,7 +113,8 @@ declare
   v_row public.spicyapi_usage_ledger%rowtype;
   v_monthly_limit numeric;
   v_pilot_limit numeric;
-  v_used numeric(12,6);
+  v_month_used numeric(12,6);
+  v_pilot_used numeric(12,6);
 begin
   if p_status not in ('settled', 'failed') or p_actual_usd < 0 then
     raise exception 'invalid_settlement';
@@ -123,10 +130,13 @@ begin
     -- Do not allow a provider settlement to push aggregate usage beyond the hard cap.
     -- Reservation estimates should be conservative; any mismatch fails closed.
     select coalesce(sum(case when status = 'reserved' then reserved_usd else actual_usd end), 0)
-      into v_used from public.spicyapi_usage_ledger
+      into v_month_used from public.spicyapi_usage_ledger
      where reservation_month = v_row.reservation_month
        and status in ('reserved', 'settled') and id <> p_reservation_id;
-    if v_used + p_actual_usd > 50 or v_used + p_actual_usd > 10 then
+    select coalesce(sum(case when status = 'reserved' then reserved_usd else actual_usd end), 0)
+      into v_pilot_used from public.spicyapi_usage_ledger
+     where status in ('reserved', 'settled') and id <> p_reservation_id;
+    if v_month_used + p_actual_usd > 50 or v_pilot_used + p_actual_usd > 10 then
       raise exception 'settlement_exceeds_hard_cap';
     end if;
   end if;
