@@ -5,8 +5,15 @@ import { supabase } from '@/lib/supabase';
 
 type Feature = 'chat' | 'image' | 'voice' | 'video';
 
+const tools: { id: Feature; title: string; subtitle: string; icon: string }[] = [
+  { id: 'chat', title: 'AI companion', subtitle: 'Chat & roleplay', icon: '✦' },
+  { id: 'image', title: 'Anime image', subtitle: 'Create a character', icon: '▧' },
+  { id: 'voice', title: 'Character voice', subtitle: 'Turn text into audio', icon: '♫' },
+  { id: 'video', title: 'Short video', subtitle: 'Animate a scene', icon: '▶' },
+];
+
 export default function MediaStudioPage() {
-  const [feature, setFeature] = useState<Feature>('chat');
+  const [feature, setFeature] = useState<Feature>('image');
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -73,46 +80,131 @@ export default function MediaStudioPage() {
     }
   }
 
+  const activeTool = tools.find(item => item.id === feature)!;
+  const placeholder = feature === 'chat' ? 'Write a message to start your conversation…'
+    : feature === 'voice' ? 'Type the words you want your character to say…'
+    : feature === 'image' ? 'A cinematic anime portrait of a fictional adult character, moonlit room, detailed cel shading, expressive eyes, beautiful lighting…'
+    : 'A short cinematic anime scene with fictional adult characters, gentle camera movement, moonlit atmosphere…';
+
   return (
-    <main style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at top,#39244e 0%,#191422 48%,#100e17 100%)', color: '#fff', padding: '28px clamp(16px,4vw,48px)', fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        <a href="/" style={{ color: '#efb9ff', textDecoration: 'none' }}>← Back to Soul</a>
-        <h1 style={{ fontSize: 'clamp(32px,5vw,52px)', margin: '24px 0 8px' }}>Soul Media Studio</h1>
-        <p style={{ color: '#c5bacd', lineHeight: 1.7 }}>Chat, create fictional adult characters and generate media when your account is eligible and the paid pilot is explicitly activated.</p>
-        <section style={{ margin: '22px 0', padding: 16, borderRadius: 16, border: '1px solid #e8a3f544', background: '#e879f911', lineHeight: 1.7 }}>
-          <strong>Launch status: paid generation is off.</strong>
-          <div style={{ color: '#c5bacd', fontSize: 13 }}>{status}</div>
-          <div style={{ color: '#c5bacd', fontSize: 12, marginTop: 8 }}>AI-generated content only. Only fictional consenting adults are allowed for adult media. Real-person sexual imagery, youth-coded content, non-consensual content and sexual violence are prohibited. Verified adult access is required.</div>
-        </section>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {(['chat','image','voice','video'] as Feature[]).map(item => (
-            <button key={item} onClick={() => { setFeature(item); setResult(null); setError(''); }} style={{ border: '1px solid ' + (feature === item ? '#efb5fb' : '#ffffff25'), borderRadius: 999, padding: '10px 18px', background: feature === item ? '#efb5fb' : '#ffffff0c', color: feature === item ? '#24142c' : '#fff', fontWeight: 800, textTransform: 'capitalize', cursor: 'pointer' }}>{item}</button>
-          ))}
-        </div>
-        <section style={{ padding: 20, border: '1px solid #ffffff20', borderRadius: 20, background: '#ffffff08' }}>
-          <label htmlFor="prompt" style={{ display: 'block', marginBottom: 10, fontWeight: 800 }}>{feature === 'voice' ? 'Text to speak' : feature === 'chat' ? 'Message your companion' : feature === 'image' ? 'Image prompt' : 'Video prompt'}</label>
-          <textarea id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={feature === 'video' ? 3000 : 4000} placeholder={feature === 'chat' ? 'Write a message…' : feature === 'voice' ? 'Write the words for your character to speak…' : feature === 'image' ? 'Describe a fictional adult character and scene…' : 'Describe a short scene with fictional adult characters…'} style={{ width: '100%', minHeight: 130, resize: 'vertical', padding: 14, borderRadius: 12, border: '1px solid #ffffff25', background: '#100e17', color: '#fff', font: 'inherit', boxSizing: 'border-box' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
-            <span style={{ color: '#a99cb2', fontSize: 12 }}>No paid API request is sent while the server-side gate is off.</span>
-            <button disabled={busy || !prompt.trim()} onClick={submit} style={{ border: 0, borderRadius: 12, padding: '12px 20px', background: busy ? '#78677e' : '#efb5fb', color: '#24142c', fontWeight: 900, cursor: busy ? 'wait' : 'pointer' }}>{busy ? 'Working…' : 'Generate'}</button>
+    <main style={{ minHeight: '100vh', background: '#0b0912', color: '#f8f5ff', padding: '0 0 56px', fontFamily: 'Inter,ui-sans-serif,system-ui,-apple-system,sans-serif' }}>
+      <style>{`
+        .studio-shell{max-width:1180px;margin:0 auto;padding:24px clamp(16px,4vw,38px) 60px}
+        .studio-nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 0 28px}
+        .studio-brand{display:flex;align-items:center;gap:11px;color:#fff;text-decoration:none;font-weight:900;letter-spacing:.04em}
+        .studio-mark{display:grid;place-items:center;width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#a78bfa,#f0abfc);color:#20112d;font-size:22px;box-shadow:0 8px 30px #a78bfa30}
+        .studio-nav-link{color:#c7bdd7;text-decoration:none;font-size:13px;padding:10px 13px;border:1px solid #ffffff16;border-radius:12px}
+        .studio-hero{position:relative;overflow:hidden;border:1px solid #ffffff17;border-radius:28px;padding:clamp(23px,5vw,48px);background:radial-gradient(ellipse at 86% 15%,#563778 0,transparent 38%),linear-gradient(125deg,#21162e,#17111f 62%,#22172d)}
+        .studio-hero:after{content:'✦';position:absolute;right:8%;top:15%;font-size:clamp(80px,15vw,180px);color:#f0abfc;opacity:.12;transform:rotate(15deg);pointer-events:none}
+        .studio-kicker{display:inline-flex;align-items:center;gap:8px;border:1px solid #d8b4fe45;background:#d8b4fe0e;border-radius:999px;padding:7px 11px;color:#e9d5ff;font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
+        .studio-hero h1{font-size:clamp(34px,6vw,58px);line-height:1.04;letter-spacing:-.055em;margin:20px 0 13px;max-width:680px}
+        .studio-hero h1 span{background:linear-gradient(90deg,#c4b5fd,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent}
+        .studio-hero p{max-width:600px;color:#c5b8d2;line-height:1.75;font-size:14px;margin:0}
+        .studio-status{display:flex;align-items:flex-start;gap:12px;margin-top:24px;border:1px solid #fbbf2440;border-radius:15px;background:#fbbf240d;padding:14px 16px;max-width:720px}
+        .studio-status-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#fbbf24;margin-top:5px;box-shadow:0 0 0 4px #fbbf241b}
+        .studio-status strong{display:block;font-size:13px;color:#fde68a;margin-bottom:3px}
+        .studio-status span{display:block;color:#c7b9ce;font-size:12px;line-height:1.6}
+        .studio-section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:34px 0 15px}
+        .studio-section-head h2{margin:0;font-size:19px;letter-spacing:-.02em}
+        .studio-section-head p{margin:5px 0 0;color:#92869f;font-size:12px}
+        .studio-tool-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+        .studio-tool{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-height:135px;padding:17px;border:1px solid #ffffff16;border-radius:18px;background:#ffffff06;color:#f7f2ff;transition:border-color .15s,transform .15s,background .15s}
+        .studio-tool:hover{transform:translateY(-2px);border-color:#c4b5fd70}
+        .studio-tool.active{border-color:#c4b5fd;background:linear-gradient(145deg,#a78bfa22,#f0abfc0b);box-shadow:inset 0 0 0 1px #a78bfa15}
+        .studio-tool-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:12px;background:#a78bfa1a;color:#d8b4fe;font-size:21px;margin-bottom:14px}
+        .studio-tool.active .studio-tool-icon{background:linear-gradient(135deg,#c4b5fd,#f0abfc);color:#251432}
+        .studio-tool b{font-size:13px}
+        .studio-tool small{font-size:11px;color:#9c90a8;margin-top:5px}
+        .studio-workspace{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);gap:15px}
+        .studio-panel{border:1px solid #ffffff16;border-radius:20px;background:#ffffff06;padding:clamp(16px,3vw,23px);min-width:0}
+        .studio-panel-title{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+        .studio-panel-title-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#a78bfa1a;color:#d8b4fe}
+        .studio-panel-title h3{font-size:14px;margin:0}
+        .studio-panel-title p{font-size:11px;color:#92869f;margin:4px 0 0}
+        .studio-label{display:block;color:#ddd3e8;font-size:12px;font-weight:750;margin-bottom:10px}
+        .studio-prompt{width:100%;min-height:180px;resize:vertical;box-sizing:border-box;border:1px solid #ffffff1c;border-radius:14px;padding:15px;background:#0c0913;color:#fff;font:inherit;font-size:13px;line-height:1.65;outline:none}
+        .studio-prompt:focus,.studio-report:focus{border-color:#c4b5fd;box-shadow:0 0 0 3px #a78bfa18}
+        .studio-prompt::placeholder,.studio-report::placeholder{color:#766b82}
+        .studio-hint{display:flex;justify-content:space-between;gap:10px;color:#83778f;font-size:10px;margin:8px 1px 15px;line-height:1.5}
+        .studio-generate{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:13px;padding:14px 16px;background:linear-gradient(100deg,#c4b5fd,#f0abfc);color:#251432;font-weight:900;font-size:13px;box-shadow:0 10px 30px #c084fc1c}
+        .studio-generate:disabled{opacity:.48;cursor:not-allowed}
+        .studio-preview{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 38%,#6b438a4d,transparent 48%),#100c18;border:1px dashed #ffffff20;border-radius:15px;padding:24px}
+        .studio-preview-symbol{display:grid;place-items:center;width:75px;height:75px;border-radius:24px;background:linear-gradient(145deg,#c4b5fd,#f0abfc);color:#251432;font-size:34px;box-shadow:0 20px 50px #a78bfa25;margin-bottom:20px}
+        .studio-preview h4{font-size:15px;margin:0 0 8px}
+        .studio-preview p{font-size:12px;line-height:1.7;color:#92869f;max-width:290px;margin:0}
+        .studio-result{width:100%;max-width:100%;border-radius:13px;margin-top:12px}
+        .studio-error{padding:12px;border:1px solid #fb718544;border-radius:12px;background:#fb71850c;color:#fecdd3;font-size:12px;line-height:1.6;margin-top:14px}
+        .studio-safety{margin-top:15px;color:#92869f;font-size:11px;line-height:1.7}
+        .studio-report{width:100%;box-sizing:border-box;min-height:85px;resize:vertical;border:1px solid #ffffff1c;border-radius:12px;padding:12px;background:#0c0913;color:#fff;font:inherit;font-size:12px;outline:none}
+        .studio-report-btn{margin-top:10px;border:1px solid #ffffff20;border-radius:11px;padding:10px 13px;background:#ffffff09;color:#ded4eb;font-size:12px;font-weight:750}
+        .studio-report-btn:disabled{opacity:.4}
+        .studio-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:25px;padding-top:17px;border-top:1px solid #ffffff12;color:#756b80;font-size:10px;line-height:1.7}
+        @media(max-width:760px){.studio-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-workspace{grid-template-columns:1fr}.studio-hero{border-radius:22px}.studio-preview{min-height:240px}.studio-nav{padding-bottom:20px}}
+        @media(max-width:390px){.studio-tool{padding:13px;min-height:125px}.studio-hero h1{font-size:34px}.studio-hint{flex-direction:column}}
+      `}</style>
+      <div className="studio-shell">
+        <nav className="studio-nav">
+          <a href="/" className="studio-brand"><span className="studio-mark">✦</span><span>SOUL <span style={{ color: '#bda7d4', fontWeight: 600 }}>STUDIO</span></span></a>
+          <a href="/pricing" className="studio-nav-link">View plans ↗</a>
+        </nav>
+
+        <header className="studio-hero">
+          <span className="studio-kicker">✧ Your creative universe</span>
+          <h1>Imagine it.<br /><span>Bring it to Soul.</span></h1>
+          <p>One creative space for companion conversations, anime-inspired artwork, character voices and cinematic short videos.</p>
+          <div className="studio-status">
+            <i className="studio-status-dot" />
+            <div><strong>Preview mode · Generation currently off</strong><span>{status} Your creative workspace is available to explore, but generation remains locked until setup is verified.</span></div>
           </div>
+        </header>
+
+        <div className="studio-section-head">
+          <div><h2>Choose your studio</h2><p>What would you like to create today?</p></div>
+        </div>
+        <div className="studio-tool-grid">
+          {tools.map(item => <button key={item.id} type="button" className={'studio-tool' + (feature === item.id ? ' active' : '')} onClick={() => { setFeature(item.id); setResult(null); setError(''); }}>
+            <span className="studio-tool-icon">{item.icon}</span><b>{item.title}</b><small>{item.subtitle}</small>
+          </button>)}
+        </div>
+
+        <div className="studio-section-head">
+          <div><h2>Create something new</h2><p>Describe your idea and preview the workspace.</p></div>
+        </div>
+        <div className="studio-workspace">
+          <section className="studio-panel">
+            <div className="studio-panel-title"><span className="studio-panel-title-icon">{activeTool.icon}</span><div><h3>{activeTool.title}</h3><p>{activeTool.subtitle}</p></div></div>
+            <label className="studio-label" htmlFor="studio-prompt">{feature === 'voice' ? 'Your script' : feature === 'chat' ? 'Your message' : 'Describe your scene'}</label>
+            <textarea id="studio-prompt" className="studio-prompt" value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={feature === 'video' ? 3000 : 4000} placeholder={placeholder} />
+            <div className="studio-hint"><span>{feature === 'image' ? 'Tip: mention art style, lighting and mood.' : feature === 'video' ? 'Tip: describe the scene and camera movement.' : feature === 'voice' ? 'Tip: use punctuation to shape delivery.' : 'Tip: tell your companion the tone you prefer.'}</span><span>{prompt.length}/{feature === 'video' ? 3000 : 4000}</span></div>
+            <button className="studio-generate" disabled={busy || !prompt.trim()} onClick={submit}><span>{busy ? '◌' : '✦'}</span>{busy ? 'Preparing…' : 'Generate (currently locked)'}</button>
+            {error && <div role="alert" className="studio-error">{error}</div>}
+            <p className="studio-safety">Fictional adult characters only for adult media. No minors or youth-coded characters, sexual imagery of identifiable real people, non-consensual content or sexual violence. AI outputs may be imperfect.</p>
+          </section>
+
+          <section className="studio-panel">
+            <div className="studio-panel-title"><span className="studio-panel-title-icon">◈</span><div><h3>Preview canvas</h3><p>Your output will appear here</p></div></div>
+            <div className="studio-preview">
+              {!result && <><div className="studio-preview-symbol">{activeTool.icon}</div><h4>Your next idea starts here</h4><p>Choose a studio, write a prompt, and your generated result will show up in this canvas once the pilot is approved and configured.</p></>}
+              {result && <div style={{ width: '100%' }}>
+                {result.reply && <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: '#f3eafa', textAlign: 'left' }}>{result.reply}</p>}
+                {Array.isArray(result.images) && result.images.map((image: any, index: number) => image.url ? <img className="studio-result" key={image.url || index} src={image.url} alt="AI-generated fictional character" /> : null)}
+                {result.audio?.url && <audio controls src={result.audio.url} style={{ width: '100%', marginTop: 12 }} />}
+                {(result.output?.url || result.output?.video_url) && <video controls src={result.output.url || result.output.video_url} className="studio-result" />}
+                {result.taskId && <p style={{ marginTop: 12 }}>Video task: {result.taskId} · {result.status || 'processing'}</p>}
+                {Number.isFinite(result.costUsd) && <p style={{ marginTop: 10 }}>Provider-reported cost: ${Number(result.costUsd).toFixed(4)} USD</p>}
+              </div>}
+            </div>
+          </section>
+        </div>
+
+        <section className="studio-panel" style={{ marginTop: 15 }}>
+          <div className="studio-panel-title"><span className="studio-panel-title-icon">⚑</span><div><h3>Safety & feedback</h3><p>Help keep the community safer</p></div></div>
+          <p className="studio-safety" style={{ marginTop: 0, marginBottom: 14 }}>See content that violates the rules? Sign in and submit a report. Reports are stored for review; please do not include passwords or sensitive personal information.</p>
+          <textarea className="studio-report" value={reportText} onChange={e => setReportText(e.target.value)} minLength={10} maxLength={2000} placeholder="Describe the content or concern (10–2,000 characters)…" />
+          <button className="studio-report-btn" onClick={submitReport} disabled={reportText.trim().length < 10}>Submit content report ↗</button>
+          {reportStatus && <p role="status" className="studio-safety">{reportStatus}</p>}
         </section>
-        {error && <p role="alert" style={{ padding: 14, borderRadius: 12, background: '#6f1d2a55', border: '1px solid #ff9aa866' }}>{error}</p>}
-        {result && <section style={{ marginTop: 18, padding: 20, borderRadius: 18, border: '1px solid #ffffff20', background: '#ffffff08' }}>
-          <h2 style={{ marginTop: 0 }}>Result</h2>
-          {result.reply && <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{result.reply}</p>}
-          {Array.isArray(result.images) && result.images.map((image: any, index: number) => image.url ? <img key={image.url || index} src={image.url} alt="AI-generated fictional character" style={{ width: '100%', maxWidth: 600, borderRadius: 12, marginTop: 10 }} /> : null)}
-          {result.audio?.url && <audio controls src={result.audio.url} style={{ width: '100%' }} />}
-          {(result.output?.url || result.output?.video_url) && <video controls src={result.output.url || result.output.video_url} style={{ width: '100%', maxWidth: 700, borderRadius: 12 }} />}
-          {result.taskId && <p style={{ color: '#c5bacd', fontSize: 13 }}>Video task: {result.taskId} · {result.status || 'processing'}</p>}
-          {Number.isFinite(result.costUsd) && <p style={{ color: '#a99cb2', fontSize: 12 }}>Provider-reported cost: ${Number(result.costUsd).toFixed(4)} USD</p>}
-        </section>}
-        <section style={{ marginTop: 22, padding: 18, borderRadius: 16, border: '1px solid #ffffff20', background: '#ffffff06' }}>
-          <h2 style={{ marginTop: 0, fontSize: 17 }}>Report unsafe content</h2>
-          <textarea value={reportText} onChange={e => setReportText(e.target.value)} minLength={10} maxLength={2000} placeholder="Describe the content or concern (10–2,000 characters)…" style={{ width: '100%', minHeight: 80, padding: 12, borderRadius: 10, border: '1px solid #ffffff25', background: '#100e17', color: '#fff', font: 'inherit', boxSizing: 'border-box' }} />
-          <button onClick={submitReport} disabled={reportText.trim().length < 10} style={{ marginTop: 10, border: '1px solid #ffffff25', borderRadius: 10, padding: '10px 14px', background: '#ffffff0c', color: '#fff', cursor: 'pointer' }}>Submit report</button>
-          {reportStatus && <p role="status" style={{ color: '#c5bacd', fontSize: 13 }}>{reportStatus}</p>}
-        </section>
+        <footer className="studio-footer"><span>SOUL STUDIO · AI-assisted creativity</span><span>Generation off · No automatic top-ups · Budget controls required</span></footer>
       </div>
     </main>
   );
