@@ -44,11 +44,11 @@ export default function CompanionHub() {
   function checkPrompt(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = prompt.toLowerCase();
-    if (/\\b(minor|underage|child|teen|schoolgirl|schoolboy|loli|shota)\\b/.test(value)) {
+    if (/\b(minor|underage|child|teen|schoolgirl|schoolboy|loli|shota)\b/.test(value)) {
       setNotice("Blocked: prompts involving minors or youth-coded characters are not allowed.");
       return;
     }
-    if (/\\b(explicit|nude|nsfw|sexual)\\b/.test(value) && active.age < 18) {
+    if (/\b(explicit|nude|nsfw|sexual)\b/.test(value) && active.age < 18) {
       setNotice("Blocked: explicit content is only allowed for clearly adult characters aged 18+.");
       return;
     }
