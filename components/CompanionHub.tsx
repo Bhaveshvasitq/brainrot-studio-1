@@ -1,24 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type Character = { id: string; name: string; age: number; tagline: string; bio: string; style: string; image: string };
+type Character = { id: string; name: string; age: number; tagline: string; bio: string; style: string; image: string; hair?: string; eyes?: string; build?: string; traits?: string[] };
 const starters: Character[] = [
-  { id: "luna", name: "Luna", age: 22, tagline: "Dreamy anime companion", bio: "A moonlit, thoughtful adult character who loves music and meaningful conversations.", style: "Anime", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85" },
-  { id: "mika", name: "Mika", age: 25, tagline: "Playful creative spirit", bio: "An adult cosplayer with bright energy, a playful sense of humor, and creative ideas.", style: "Cosplay", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=85" },
-  { id: "aria", name: "Aria", age: 42, tagline: "Elegant mature companion", bio: "A confident adult character who enjoys books, art, and warm conversation.", style: "Elegant", image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=900&q=85" },
-  { id: "yuki", name: "Yuki", age: 21, tagline: "Gamer and anime fan", bio: "An adult gamer who loves co-op adventures, anime, and friendly competition.", style: "Gamer", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=85" },
+  { id: "luna", name: "Luna", age: 22, tagline: "Dreamy anime companion", bio: "A moonlit, thoughtful adult character who loves music and meaningful conversations.", style: "Anime", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85", hair: "Silver", eyes: "Violet", build: "Elegant", traits: ["Gentle", "Dreamy"] },
+  { id: "mika", name: "Mika", age: 25, tagline: "Playful creative spirit", bio: "An adult cosplayer with bright energy, a playful sense of humor, and creative ideas.", style: "Realistic", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=85", hair: "Blonde", eyes: "Hazel", build: "Athletic", traits: ["Witty", "Playful"] },
+  { id: "aria", name: "Aria", age: 42, tagline: "Elegant mature companion", bio: "A confident adult character who enjoys books, art, and warm conversation.", style: "Realistic", image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=900&q=85", hair: "Brunette", eyes: "Brown", build: "Elegant", traits: ["Confident", "Warm"] },
+  { id: "yuki", name: "Yuki", age: 21, tagline: "Gamer and anime fan", bio: "An adult gamer who loves co-op adventures, anime, and friendly competition.", style: "Anime", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=85", hair: "Black", eyes: "Hazel", build: "Athletic", traits: ["Curious", "Witty"] },
 ];
+const traits = ["Gentle", "Witty", "Confident", "Playful", "Shy", "Adventurous", "Dreamy", "Warm"];
+const styles = [
+  { name: "Realistic", sub: "Photographic portrait", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85" },
+  { name: "Anime", sub: "Illustrated character", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=85" },
+];
+const hairOptions = ["Midnight black", "Silver", "Blonde", "Brunette", "Rose pink", "Blue"];
+const eyeOptions = ["Hazel eyes", "Violet eyes", "Blue eyes", "Brown eyes", "Green eyes"];
+const buildOptions = ["Athletic", "Elegant", "Petite", "Curvy", "Tall"];
 
 export default function CompanionHub() {
   const [characters, setCharacters] = useState<Character[]>(starters);
   const [active, setActive] = useState<Character>(starters[0]);
-  const [tab, setTab] = useState<"discover" | "create" | "studio" | "chat">("discover");
+  const [tab, setTab] = useState<"discover" | "chat" | "create" | "studio" | "mine">("create");
   const [search, setSearch] = useState("");
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("18");
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("Your Soul");
+  const [age, setAge] = useState("25");
   const [style, setStyle] = useState("Anime");
-  const [bio, setBio] = useState("");
+  const [hair, setHair] = useState("Midnight black");
+  const [eyes, setEyes] = useState("Hazel eyes");
+  const [build, setBuild] = useState("Athletic");
+  const [selectedTraits, setSelectedTraits] = useState<string[]>(["Gentle", "Witty"]);
+  const [bio, setBio] = useState("A warm, curious soul who makes every conversation feel special.");
   const [prompt, setPrompt] = useState("");
   const [notice, setNotice] = useState("");
   const [messages, setMessages] = useState<string[]>([]);
@@ -27,13 +40,35 @@ export default function CompanionHub() {
   const [generatedImage, setGeneratedImage] = useState("");
   const visible = useMemo(() => characters.filter(c => (c.name + " " + c.tagline + " " + c.style).toLowerCase().includes(search.toLowerCase())), [characters, search]);
 
-  function createCharacter(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("soul-studio-characters-v1");
+      if (saved) {
+        const parsed = JSON.parse(saved) as Character[];
+        if (Array.isArray(parsed) && parsed.length) setCharacters([...parsed, ...starters.filter(s => !parsed.some(p => p.id === s.id))]);
+      }
+    } catch {}
+  }, []);
+
+  function saveCharacters(next: Character[]) {
+    setCharacters(next);
+    try { localStorage.setItem("soul-studio-characters-v1", JSON.stringify(next)); } catch {}
+  }
+
+  function startCreate() {
+    setStep(1); setNotice(""); setTab("create");
+  }
+
+  function createCharacter() {
     const years = Number(age);
-    if (!name.trim()) { setNotice("Please enter a character name."); return; }
-    if (!Number.isInteger(years) || years < 18) { setNotice("Characters must be 18 or older. Under-18 character image generation is not allowed."); return; }
-    const character: Character = { id: crypto.randomUUID(), name: name.trim(), age: years, tagline: "Your original adult character", bio: bio.trim() || "An original fictional adult character created by you.", style, image: starters[(characters.length + 1) % starters.length].image };
-    setCharacters(previous => [character, ...previous]); setActive(character); setTab("chat"); setMessages([ "Your original adult character is ready. You can generate a portrait in Image Studio." ]); setName(""); setBio(""); setNotice("");
+    if (!Number.isInteger(years) || years < 18 || years > 100) { setNotice("Please choose an age from 18 to 100. Characters must be adults."); return; }
+    const character: Character = {
+      id: crypto.randomUUID(), name: name.trim() || "Your Soul", age: years, tagline: "Your original adult character",
+      bio: bio.trim() || "An original fictional adult character created by you.", style,
+      image: styles.find(s => s.name === style)?.image || starters[0].image, hair, eyes, build, traits: selectedTraits,
+    };
+    const next = [character, ...characters.filter(c => c.id !== character.id)];
+    saveCharacters(next); setActive(character); setTab("mine"); setNotice("Your character draft is saved on this device."); setStep(4);
   }
 
   function sendMessage(event: React.FormEvent<HTMLFormElement>) {
@@ -44,45 +79,96 @@ export default function CompanionHub() {
   }
 
   async function checkPrompt(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setNotice("");
-    setGeneratedImage("");
-    setGenerating(true);
+    event.preventDefault(); setNotice(""); setGeneratedImage(""); setGenerating(true);
     try {
-      const response = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, age: active.age, style }),
-      });
+      const response = await fetch("/api/generate-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, age: active.age, style }) });
       const result = await response.json();
       if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : "Image generation failed.");
       if (typeof result.imageUrl !== "string" || !result.imageUrl.startsWith("https://")) throw new Error("The provider returned an invalid image URL.");
-      setGeneratedImage(result.imageUrl);
-      setNotice("Image generated successfully. Provider moderation and usage limits apply.");
+      setGeneratedImage(result.imageUrl); setNotice("Portrait generated. Provider moderation and usage limits apply.");
+      const updated = { ...active, image: result.imageUrl };
+      setActive(updated); saveCharacters(characters.map(c => c.id === updated.id ? updated : c));
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Image generation failed. Please try again.");
-    } finally {
-      setGenerating(false);
-    }
+    } finally { setGenerating(false); }
   }
 
-  const panel: React.CSSProperties = { background: "rgba(255,255,255,.78)", border: "1px solid #f0e4f2", borderRadius: 22, boxShadow: "0 10px 34px #56345c0d" };
-  const button: React.CSSProperties = { border: "1px solid #eaddec", borderRadius: 12, padding: "10px 14px", background: "#fff", color: "#4b3652", cursor: "pointer", fontWeight: 700 };
-  const input: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid #eaddec", borderRadius: 12, padding: "12px 14px", background: "#fff", color: "#38283f", font: "inherit" };
+  const toggleTrait = (trait: string) => setSelectedTraits(old => old.includes(trait) ? old.filter(t => t !== trait) : old.length < 4 ? [...old, trait] : old);
+  const navItems = [
+    { id: "discover" as const, icon: "◉", label: "Explore" },
+    { id: "chat" as const, icon: "◌", label: "Chat" },
+    { id: "create" as const, icon: "＋", label: "Create" },
+    { id: "studio" as const, icon: "✧", label: "Generate" },
+    { id: "mine" as const, icon: "▢", label: "My AI" },
+  ];
 
-  return <main style={{ minHeight: "100vh", padding: "20px 16px 100px", color: "#38283f", background: "linear-gradient(155deg,#fff9fc 0%,#f8f5ff 46%,#fff8f1 100%)", fontFamily: "Inter,ui-sans-serif,system-ui,sans-serif" }}>
-    <header style={{ maxWidth: 1120, margin: "0 auto 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ display: "grid", placeItems: "center", width: 42, height: 42, borderRadius: 15, color: "#fff", fontSize: 23, background: "linear-gradient(140deg,#b18ae8,#f4a6c5)" }}>✦</span><div><strong style={{ fontSize: 22 }}>Soul Studio</strong><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#9b839e" }}>CREATE YOUR OWN WORLD</div></div></div>
-      <nav style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{(["discover", "chat", "create", "studio"] as const).map(item => <button key={item} onClick={() => { setTab(item); setNotice(""); }} style={{ ...button, background: tab === item ? "#f3e5fb" : "#fff", color: tab === item ? "#9857ad" : "#6f5a75", textTransform: "capitalize" }}>{item === "chat" ? "Messages" : item}</button>)}</nav>
+  return <main className="soul-app">
+    <header className="mobile-topbar">
+      <button className="menu-button" aria-label="Open menu" onClick={() => setTab("discover")}>☰</button>
+      <button className="brand" onClick={() => setTab("discover")}><span className="brand-mark">✦</span><span>SOUL STUDIO</span></button>
+      <button className="upgrade-button" onClick={() => setNotice("Payments and subscriptions are not enabled yet.")}>✦ <span>Upgrade</span></button>
+      <button className="bell-button" aria-label="Notifications" onClick={() => setNotice("You're all caught up.")}>♧</button>
     </header>
-    <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-      {tab === "discover" && <><section style={{ textAlign: "center", padding: "22px 0 28px" }}><div style={{ color: "#a66bb7", fontSize: 12, letterSpacing: 2, fontWeight: 800 }}>YOUR STORY STARTS HERE</div><h1 style={{ fontSize: "clamp(34px,6vw,58px)", lineHeight: 1.06, margin: "12px 0", letterSpacing: -2 }}>Meet your next <span style={{ color: "#b17bd0" }}>favorite soul.</span></h1><p style={{ color: "#8e7d93", maxWidth: 600, margin: "0 auto 20px", lineHeight: 1.7 }}>Discover original fictional adult characters and create your own AI portraits in Image Studio.</p><input aria-label="Search characters" style={{ ...input, maxWidth: 600, borderRadius: 18, padding: 15 }} placeholder="Search characters or styles..." value={search} onChange={e => setSearch(e.target.value)} /></section>
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,230px),1fr))", gap: 16 }}>{visible.map(c => <article key={c.id} style={{ ...panel, overflow: "hidden" }}><div style={{ height: 285, position: "relative", background: "#f1e4f7" }}><img src={c.image} alt={"Portrait of fictional adult character " + c.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /><span style={{ position: "absolute", left: 12, top: 12, padding: "6px 10px", borderRadius: 999, background: "#ffffffdf", color: "#8c54a3", fontSize: 11, fontWeight: 800 }}>{c.style} · {c.age}+</span></div><div style={{ padding: 16 }}><h2 style={{ margin: "0 0 4px", fontSize: 20 }}>{c.name}</h2><div style={{ color: "#a276af", fontSize: 12, marginBottom: 8 }}>{c.tagline}</div><p style={{ color: "#786b80", fontSize: 13, lineHeight: 1.6, minHeight: 60 }}>{c.bio}</p><button onClick={() => { setActive(c); setMessages([]); setTab("chat"); }} style={{ ...button, width: "100%", background: "linear-gradient(100deg,#b18ae8,#f0a5c6)", color: "#fff", border: 0 }}>Meet {c.name} ↗</button></div></article>)}</section></>}
-      {tab === "create" && <section style={{ ...panel, maxWidth: 680, margin: "28px auto", padding: 22 }}><h2 style={{ marginTop: 0 }}>Create an adult character</h2><p style={{ color: "#806e85", lineHeight: 1.65 }}>Characters must be 18+. The Image Studio generates original, non-explicit portraits; provider moderation applies.</p><form onSubmit={createCharacter} style={{ display: "grid", gap: 14 }}><label>Name<input required value={name} onChange={e => setName(e.target.value)} maxLength={40} style={{ ...input, marginTop: 6 }} placeholder="Character name" /></label><label>Age (18 or older)<input required type="number" min={18} max={100} value={age} onChange={e => setAge(e.target.value)} style={{ ...input, marginTop: 6 }} /></label><label>Visual style<select value={style} onChange={e => setStyle(e.target.value)} style={{ ...input, marginTop: 6 }}>{["Anime", "Realistic", "Cosplay", "Gamer", "Fantasy", "Elegant", "Goth"].map(s => <option key={s}>{s}</option>)}</select></label><label>Bio<textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={500} style={{ ...input, marginTop: 6, minHeight: 100 }} placeholder="Personality, interests and background" /></label><button type="submit" style={{ ...button, color: "#fff", border: 0, background: "linear-gradient(100deg,#a779dd,#d88bc1)" }}>Create character</button></form></section>}
-      {tab === "chat" && <section style={{ ...panel, maxWidth: 760, margin: "28px auto", padding: 20 }}><div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}><img src={active.image} alt={"Portrait of adult character " + active.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 18 }} /><div><h2 style={{ margin: 0 }}>{active.name}</h2><span style={{ color: "#8e7d93", fontSize: 12 }}>Fictional adult character · age {active.age}</span></div></div><p style={{ color: "#786b80" }}>{active.bio}</p><div style={{ minHeight: 100, display: "grid", gap: 8, marginBottom: 14 }}>{messages.map((m, i) => <p key={i} style={{ margin: 0, background: "#f7eff9", padding: 12, borderRadius: 12 }}>{m}</p>)}</div><form onSubmit={sendMessage} style={{ display: "flex", gap: 8 }}><input value={draft} onChange={e => setDraft(e.target.value)} style={input} placeholder={"Message " + active.name + "..."} /><button type="submit" style={button}>Send</button></form></section>}
-      {tab === "studio" && <section style={{ ...panel, maxWidth: 760, margin: "28px auto", padding: 22 }}><h2 style={{ marginTop: 0 }}>Image studio</h2><p style={{ color: "#806e85", lineHeight: 1.65 }}>Safety rules: adult fictional characters only. This provider integration supports non-explicit portraits and scenes, not explicit sexual content. Provider moderation applies.</p><div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}><img src={active.image} alt={"Current adult character " + active.name} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 14 }} /><div><strong>{active.name}</strong><div style={{ fontSize: 12, color: "#806e85" }}>Age {active.age} · {active.style}</div></div></div><form onSubmit={checkPrompt} style={{ display: "grid", gap: 12 }}><textarea required value={prompt} onChange={e => setPrompt(e.target.value)} style={{ ...input, minHeight: 120 }} placeholder="Describe an adult character, outfit, setting, lighting and art style..." /><button type="submit" disabled={generating} style={{ ...button, opacity: generating ? 0.65 : 1 }}>{generating ? "Generating image..." : "Generate image"}</button></form>{generatedImage && <div style={{ marginTop: 18 }}><img src={generatedImage} alt={"AI-generated portrait of adult character " + active.name} style={{ width: "100%", maxHeight: 720, objectFit: "contain", display: "block", borderRadius: 16, background: "#f4edf7" }} /><a href={generatedImage} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 10, color: "#9857ad", fontWeight: 700 }}>Open generated image ↗</a></div>}</section>}
-      {notice && <p role="status" style={{ textAlign: "center", padding: 12, color: "#9857ad" }}>{notice}</p>}
+
+    <div className="desktop-layout">
+      <aside className="side-rail">
+        <div className="rail-label">YOUR SPACE</div>
+        {navItems.map(item => <button key={item.id} className={tab === item.id ? "rail-link active" : "rail-link"} onClick={() => { setTab(item.id); setNotice(""); }}><span>{item.icon}</span>{item.label}</button>)}
+        <div className="rail-bottom"><span className="brand-mark">✦</span><div><b>Soul Studio</b><small>Original characters, your world.</small></div></div>
+      </aside>
+
+      <div className="main-content">
+        {tab === "create" && <section className="create-page">
+          <div className="create-kicker">YOUR IMAGINATION, BROUGHT TO LIFE</div>
+          <h1>Create your <em>perfect soul.</em></h1>
+          <p className="lead">Shape a character with their own look, energy and personality. Make someone entirely your own, one detail at a time.</p>
+          <div className="stepper" aria-label={"Step " + step + " of 4"}>
+            {[["01","Style"],["02","Appearance"],["03","Personality"],["04","Review"]].map(([num,label],i) => <button key={num} onClick={() => setStep(i+1)} className={step === i+1 ? "step active" : step > i+1 ? "step complete" : "step"}><span>{step > i+1 ? "✓" : num}</span><b>{label}</b></button>)}
+          </div>
+
+          {step === 1 && <div className="creator-panel">
+            <div className="panel-heading"><span className="eyebrow">STEP 01 · CHOOSE YOUR STYLE</span><h2>What world are they from?</h2><p>Choose the visual style for your original adult character.</p></div>
+            <div className="style-grid">{styles.map(s => <button key={s.name} className={"style-card " + (style === s.name ? "selected" : "")} onClick={() => setStyle(s.name)}><img src={s.image} alt={s.name + " style example"} /><span className="style-shade" /><span className="style-check">{style === s.name ? "✓" : ""}</span><span className="style-copy"><b>{s.name}</b><small>{s.sub}</small></span></button>)}</div>
+            <div className="creator-actions"><span>Step 1 of 4</span><button className="pink-button" onClick={() => setStep(2)}>Continue <b>→</b></button></div>
+          </div>}
+
+          {step === 2 && <div className="creator-panel">
+            <div className="panel-heading"><span className="eyebrow">STEP 02 · APPEARANCE</span><h2>Give them their signature look.</h2><p>Every detail helps make your character feel unique.</p></div>
+            <label className="field-label">Character name<input value={name} onChange={e => setName(e.target.value)} maxLength={40} placeholder="Give your character a name" /></label>
+            <label className="field-label">Age (18–100)<input type="number" min={18} max={100} value={age} onChange={e => setAge(e.target.value)} /></label>
+            <div className="option-section"><b>Hair color</b><div className="chips">{hairOptions.map(v => <button key={v} className={hair === v ? "chip selected" : "chip"} onClick={() => setHair(v)}>{v}</button>)}</div></div>
+            <div className="option-section"><b>Eyes</b><div className="chips">{eyeOptions.map(v => <button key={v} className={eyes === v ? "chip selected" : "chip"} onClick={() => setEyes(v)}>{v}</button>)}</div></div>
+            <div className="option-section"><b>Build</b><div className="chips">{buildOptions.map(v => <button key={v} className={build === v ? "chip selected" : "chip"} onClick={() => setBuild(v)}>{v}</button>)}</div></div>
+            <div className="creator-actions"><button className="quiet-button" onClick={() => setStep(1)}>← Back</button><span>Step 2 of 4</span><button className="pink-button" onClick={() => setStep(3)}>Continue <b>→</b></button></div>
+          </div>}
+
+          {step === 3 && <div className="creator-panel">
+            <div className="panel-heading"><span className="eyebrow">STEP 03 · PERSONALITY</span><h2>What makes them, them?</h2><p>Pick up to four traits and add a short description.</p></div>
+            <div className="option-section"><b>Personality traits <small>{selectedTraits.length}/4 selected</small></b><div className="chips trait-chips">{traits.map(v => <button key={v} className={selectedTraits.includes(v) ? "chip selected" : "chip"} onClick={() => toggleTrait(v)}>{selectedTraits.includes(v) ? "✓ " : "+ "}{v}</button>)}</div></div>
+            <label className="field-label">Character description<textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={500} rows={4} placeholder="A little about their personality, interests and world..." /></label>
+            <div className="creator-actions"><button className="quiet-button" onClick={() => setStep(2)}>← Back</button><span>Step 3 of 4</span><button className="pink-button" onClick={() => setStep(4)}>Review <b>→</b></button></div>
+          </div>}
+
+          {step === 4 && <div className="creator-panel review-panel">
+            <div className="panel-heading"><span className="eyebrow">STEP 04 · REVIEW</span><h2>Meet your new soul</h2><p>Review your character profile before saving.</p></div>
+            <div className="review-preview"><div className="preview-avatar"><span>✧</span></div><h3>{name.trim() || "Your Soul"}</h3><p className="preview-subtitle">{style} · Female · Age {age || "25"}</p><p className="preview-bio">{bio || "A warm, curious soul who makes every conversation feel special."}</p><div className="chips centered-chips"><span className="chip">{hair}</span><span className="chip">{eyes}</span><span className="chip">{build}</span></div><div className="review-divider" /><b className="review-label">PERSONALITY</b><div className="chips centered-chips">{selectedTraits.map(t => <span className="chip" key={t}>{t}</span>)}</div></div>
+            <div className="local-note">Drafts are saved on this device only. AI portrait generation uses the connected provider and is subject to moderation and availability.</div>
+            <div className="creator-actions"><button className="quiet-button" onClick={() => setStep(3)}>← Back</button><span>Step 4 of 4</span><button className="pink-button" onClick={createCharacter}>Save draft ✦</button></div>
+          </div>}
+        </section>}
+
+        {tab === "discover" && <section className="browse-page"><div className="create-kicker">YOUR STORY STARTS HERE</div><h1>Meet your next <em>favorite soul.</em></h1><p className="lead">Discover original fictional adult characters, or create someone entirely your own.</p><input className="search-field" aria-label="Search characters" value={search} onChange={e => setSearch(e.target.value)} placeholder="⌕  Search characters or styles..." /><div className="section-title"><div><h2>Discover souls</h2><p>Find a new personality to explore.</p></div><button onClick={startCreate}>Create yours +</button></div><div className="character-grid">{visible.map(c => <article className="character-card" key={c.id}><div className="character-image"><img src={c.image} alt={"Portrait of adult character " + c.name} /><span>{c.style} · {c.age}+</span></div><div className="character-info"><h3>{c.name}</h3><small>{c.tagline}</small><p>{c.bio}</p><button className="soft-button" onClick={() => { setActive(c); setMessages([]); setTab("chat"); }}>Meet {c.name} ↗</button></div></article>)}</div></section>}
+
+        {tab === "studio" && <section className="studio-page"><div className="create-kicker">IMAGE STUDIO</div><h1>Bring your soul <em>to life.</em></h1><p className="lead">Create an original portrait of a clearly adult fictional character.</p><div className="studio-panel"><div className="studio-character"><img src={active.image} alt={"Current character " + active.name} /><div><b>{active.name}</b><small>Age {active.age} · {active.style}</small><button className="quiet-button" onClick={() => setTab("mine")}>Choose another</button></div></div><form onSubmit={checkPrompt}><label className="field-label">Describe your portrait<textarea required value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={1200} rows={5} placeholder="Example: Adult anime woman, age 25, elegant outfit, moonlit fantasy garden, detailed illustration..." /></label><button className="pink-button full-button" type="submit" disabled={generating}>{generating ? "Generating your portrait…" : "✧ Generate portrait"}</button></form>{generatedImage && <div className="generated-result"><img src={generatedImage} alt={"Generated portrait of " + active.name} /><a href={generatedImage} target="_blank" rel="noreferrer">Open full image ↗</a></div>}<p className="fine-print">Adult fictional characters only. Non-explicit portraits and scenes. Provider moderation and usage limits apply.</p></div></section>}
+
+        {tab === "chat" && <section className="chat-page"><div className="create-kicker">YOUR CONVERSATION</div><h1>Say hello to <em>{active.name}.</em></h1><div className="studio-panel chat-panel"><div className="studio-character"><img src={active.image} alt={active.name} /><div><b>{active.name}</b><small>Fictional adult character · age {active.age}</small></div></div><div className="chat-history">{messages.length ? messages.map((m,i)=><p key={i} className="chat-message">{m}</p>) : <p className="chat-welcome">Start a conversation with {active.name}. Chat replies are not connected to an AI service yet.</p>}</div><form className="chat-form" onSubmit={sendMessage}><input value={draft} onChange={e => setDraft(e.target.value)} placeholder={"Message " + active.name + "..."} /><button className="pink-button" type="submit">Send</button></form></div></section>}
+
+        {tab === "mine" && <section className="browse-page"><div className="create-kicker">YOUR COLLECTION</div><h1>My <em>souls.</em></h1><p className="lead">Your saved character drafts on this device.</p><div className="section-title"><div><h2>Saved characters</h2><p>{characters.length} characters in your collection</p></div><button onClick={startCreate}>Create new +</button></div><div className="character-grid">{characters.map(c => <article className="character-card" key={c.id}><div className="character-image"><img src={c.image} alt={"Portrait of " + c.name} /><span>{c.style} · {c.age}+</span></div><div className="character-info"><h3>{c.name}</h3><small>{c.tagline}</small><p>{c.bio}</p><button className="soft-button" onClick={() => { setActive(c); setTab("studio"); }}>Generate portrait ↗</button></div></article>)}</div></section>}
+        {notice && <div role="status" className="notice">{notice}<button aria-label="Dismiss" onClick={() => setNotice("")}>×</button></div>}
+      </div>
     </div>
-    <footer style={{ maxWidth: 1120, margin: "28px auto 0", borderTop: "1px solid #eee3f0", paddingTop: 18, color: "#a694ab", fontSize: 12 }}>Soul Studio · Adult fictional characters only · Adult-only image generation · Payments off</footer>
+
+    <nav className="bottom-nav" aria-label="Main navigation">{navItems.map(item => <button key={item.id} className={tab === item.id ? "bottom-link active" : "bottom-link"} onClick={() => { setTab(item.id); setNotice(""); }}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>
+    <div className="mobile-safe-space" />
   </main>;
 }
