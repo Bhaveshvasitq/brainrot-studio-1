@@ -168,7 +168,7 @@ export default function MediaStudioPage() {
         </div>
 
         <div className="studio-section-head">
-          <div><h2>Create something new</h2><p>Describe your idea and preview the workspace.</p></div>
+          <div><h2>Create something new</h2><p>Describe your idea, refine the prompt, and preview the workspace. No generation requests are sent while preview mode is active.</p></div>
         </div>
         <div className="studio-workspace">
           <section className="studio-panel">
@@ -176,7 +176,7 @@ export default function MediaStudioPage() {
             <label className="studio-label" htmlFor="studio-prompt">{feature === 'voice' ? 'Your script' : feature === 'chat' ? 'Your message' : 'Describe your scene'}</label>
             <textarea id="studio-prompt" className="studio-prompt" value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={feature === 'video' ? 3000 : 4000} placeholder={placeholder} />
             <div className="studio-hint"><span>{feature === 'image' ? 'Tip: mention art style, lighting and mood.' : feature === 'video' ? 'Tip: describe the scene and camera movement.' : feature === 'voice' ? 'Tip: use punctuation to shape delivery.' : 'Tip: tell your companion the tone you prefer.'}</span><span>{prompt.length}/{feature === 'video' ? 3000 : 4000}</span></div>
-            <button className="studio-generate" disabled={busy || !prompt.trim()} onClick={submit}><span>{busy ? '◌' : '✦'}</span>{busy ? 'Preparing…' : 'Generate (currently locked)'}</button>
+            <button className="studio-generate" disabled title="Generation is paused until the provider, safety checks and budget controls are approved."><span>✦</span>Generation paused · Preview only</button>
             {error && <div role="alert" className="studio-error">{error}</div>}
             <p className="studio-safety">Fictional adult characters only for adult media. No minors or youth-coded characters, sexual imagery of identifiable real people, non-consensual content or sexual violence. AI outputs may be imperfect.</p>
           </section>
@@ -184,7 +184,7 @@ export default function MediaStudioPage() {
           <section className="studio-panel">
             <div className="studio-panel-title"><span className="studio-panel-title-icon">◈</span><div><h3>Preview canvas</h3><p>Your output will appear here</p></div></div>
             <div className="studio-preview">
-              {!result && <><div className="studio-preview-symbol">{activeTool.icon}</div><h4>Your next idea starts here</h4><p>Choose a studio, write a prompt, and your generated result will show up in this canvas once the pilot is approved and configured.</p></>}
+              {!result && <><div className="studio-preview-symbol">{activeTool.icon}</div><h4>Your next idea starts here</h4><p>This canvas is a design preview. Provider requests remain disabled until safety checks, age verification, and spending controls are approved.</p></>}
               {result && <div style={{ width: '100%' }}>
                 {result.reply && <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: '#f3eafa', textAlign: 'left' }}>{result.reply}</p>}
                 {Array.isArray(result.images) && result.images.map((image: any, index: number) => image.url ? <img className="studio-result" key={image.url || index} src={image.url} alt="AI-generated fictional character" /> : null)}
