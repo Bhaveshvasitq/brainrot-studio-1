@@ -46,12 +46,12 @@ export default function MediaStudioPage() {
       const token = data.session?.access_token;
       if (!token) throw new Error('Sign in is required. Paid generation is not available to signed-out users.');
       const endpoint = feature === 'chat' ? '/api/spicyapi/chat'
-        : feature === 'image' ? '/api/spicyapi/image'
+        : feature === 'image' ? '/api/wiro/image'
         : feature === 'voice' ? '/api/spicyapi/voice'
         : '/api/spicyapi/video';
       const body = feature === 'chat' ? { messages: [{ role: 'user', content: prompt }] }
         : feature === 'voice' ? { text: prompt }
-        : { prompt, durationSeconds: 3 };
+        : { prompt: feature === 'image' ? sceneMode + ' mood, ' + prompt : prompt, durationSeconds: 3 };
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
@@ -178,7 +178,7 @@ export default function MediaStudioPage() {
             <textarea id="studio-prompt" className="studio-prompt" value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={feature === 'video' ? 3000 : 4000} placeholder={placeholder} />
             {(feature === 'image' || feature === 'video' || feature === 'chat') && <div style={{ marginTop: 14 }}><label className="studio-label" htmlFor="scene-mode">Creative mood</label><select id="scene-mode" value={sceneMode} onChange={e => setSceneMode(e.target.value)} style={{ width: '100%', border: '1px solid #ffffff1c', borderRadius: 12, padding: '12px 13px', background: '#0c0913', color: '#f8f5ff', font: 'inherit', fontSize: 12 }}><option>Romantic</option><option>Glamour</option><option>Fantasy</option><option>Flirty</option><option>Cozy</option><option>Cinematic</option><option>Anime</option></select><p className="studio-safety" style={{ marginTop: 7 }}>Mood selection is a prompt aid only; it does not bypass model or provider safety rules.</p></div>}
             <div className="studio-hint"><span>{feature === 'image' ? 'Tip: mention art style, lighting and mood.' : feature === 'video' ? 'Tip: describe the scene and camera movement.' : feature === 'voice' ? 'Tip: use punctuation to shape delivery.' : 'Tip: tell your companion the tone you prefer.'}</span><span>{prompt.length}/{feature === 'video' ? 3000 : 4000}</span></div>
-            <button className="studio-generate" disabled title="Generation is paused until Wiro is configured, adult access is verified, and spending controls are approved."><span>✦</span>18+ studio · Generation paused</button>
+            <button className="studio-generate" onClick={submit} disabled={busy || feature !== 'image' || !prompt.trim()} title="Image generation requires verified adult access and approved Wiro spending controls."><span>✦</span>{busy ? 'Generating…' : feature === 'image' ? 'Generate adult character image' : 'Generation paused for this tool'}</button>
             {error && <div role="alert" className="studio-error">{error}</div>}
             <p className="studio-safety">Adults only (18+). Use fictional adult characters and consensual, non-graphic romantic or sensual concepts. No minors or youth-coded characters, sexual depictions of identifiable real people, non-consensual intimate imagery, sexual violence or bestiality. AI outputs may be imperfect. Wiro image generation will only be enabled after credentials and cost controls are configured.</p>
           </section>
@@ -186,8 +186,9 @@ export default function MediaStudioPage() {
           <section className="studio-panel">
             <div className="studio-panel-title"><span className="studio-panel-title-icon">◈</span><div><h3>Preview canvas</h3><p>Your output will appear here</p></div></div>
             <div className="studio-preview">
-              {!result && <><div className="studio-preview-symbol">{activeTool.icon}</div><h4>Your next idea starts here</h4><p>This is a design preview for {sceneMode.toLowerCase()} adult-fiction concepts. Provider requests remain disabled until Wiro credentials, verified adult access, safety checks and spending controls are approved.</p></>}
+              {!result && <><div className="studio-preview-symbol">{activeTool.icon}</div><h4>Your next idea starts here</h4><p>This is a design preview for {sceneMode.toLowerCase()} adult-fiction concepts. Image generation uses Wiro when its server-side credentials, verified adult access, safety checks and spending controls are approved.</p></>}
               {result && <div style={{ width: '100%' }}>
+                {result.imageUrl && <img className="studio-result" src={result.imageUrl} alt="Generated fictional adult character" />}
                 {result.reply && <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: '#f3eafa', textAlign: 'left' }}>{result.reply}</p>}
                 {Array.isArray(result.images) && result.images.map((image: any, index: number) => image.url ? <img className="studio-result" key={image.url || index} src={image.url} alt="AI-generated fictional character" /> : null)}
                 {result.audio?.url && <audio controls src={result.audio.url} style={{ width: '100%', marginTop: 12 }} />}
