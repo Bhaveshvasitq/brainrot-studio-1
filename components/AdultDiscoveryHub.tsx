@@ -115,7 +115,7 @@ export default function AdultDiscoveryHub() {
       </form>
       <p className="adult-search-note">This search filters listed sources; it does not search every third-party title. A full searchable feed requires an authorized provider API.</p>
       <section className="adult-embed-panel"><p className="adult-kicker">IN-SITE PLAYER</p><h2>Play an official embed</h2><p>Paste an official Pornhub embed URL. Only HTTPS embed URLs from Pornhub are accepted.</p><form className="adult-search adult-embed-form" onSubmit={loadOfficialEmbed}><input aria-label="Official video embed URL" value={embedInput} onChange={(e) => setEmbedInput(e.target.value)} placeholder="https://www.pornhub.com/embed/VIDEO_ID" maxLength={500} /><button type="submit">Load player ↗</button></form>{activeEmbed && <div className="adult-player-wrap"><iframe title="Official embedded video" src={activeEmbed} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen /><p>Provider restrictions, regional availability, and embed settings still apply.</p></div>}</section>
-      <div className="adult-category-row">{categories.map((item) => <button key={item.id} className={category === item.id ? "adult-category active" : "adult-category"} onClick={() => setCategory(item.id)}><strong>{item.label}</strong><small>{item.description}</small></button>)}</div>
+      <div className="adult-category-row">{categories.map((item) => <button key={item.id} className={category === item.id ? "adult-category active" : "adult-category"} onClick={() => { setCategory(item.id); setQuery(""); setNotice(""); }}><strong>{item.label}</strong><small>{item.description}</small></button>)}</div>
     </section>
 
     <section className="adult-directory">
