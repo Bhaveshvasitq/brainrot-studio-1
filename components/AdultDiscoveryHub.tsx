@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 
 type Kind = "all" | "video" | "hentai" | "manga" | "creator";
 type Source = { name: string; kind: Exclude<Kind, "all">; description: string; url: string; tags: string[] };
+type OpenVideo = { id: string; title: string; description: string; url: string; embedUrl: string | null; thumbnailUrl: string | null; duration: number | null; views: number | null; licence: string; channel: string };
 
 const sources: Source[] = [
   { name: "Pornhub", kind: "video", description: "Adult video platform. Browse on the source site.", url: "https://www.pornhub.com/", tags: ["video", "adult", "clips"] },
@@ -47,6 +48,8 @@ export default function AdultDiscoveryHub() {
   const [notice, setNotice] = useState("");
   const [embedInput, setEmbedInput] = useState("");
   const [activeEmbed, setActiveEmbed] = useState("");
+  const [openVideos, setOpenVideos] = useState<OpenVideo[]>([]);
+  const [searching, setSearching] = useState(false);
 
   // Keep provider cards visible while a title/creator query is entered.
   // This directory has no provider catalogue API yet, so a title query must not
@@ -65,7 +68,22 @@ export default function AdultDiscoveryHub() {
       setNotice("Enter a title, genre, creator, or provider name to filter the catalogue.");
       return;
     }
-    setNotice("Your keyword is ready, and matching provider categories are shown below. Soul Studio does not yet have authorized live title-search feeds, so it cannot return actual videos or manga titles from this keyword yet.");
+    setSearching(true);
+    setOpenVideos([]);
+    fetch(`/api/open-videos?q=${encodeURIComponent(query.trim())}`)
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Open video search failed.");
+        return payload;
+      })
+      .then((payload) => {
+        setOpenVideos(payload.results || []);
+        setNotice(`Found ${(payload.results || []).length} open-licensed videos. Review each video's licence and creator attribution before reuse.`);
+      })
+      .catch((error: unknown) => {
+        setNotice(error instanceof Error ? error.message : "Open video search failed.");
+      })
+      .finally(() => setSearching(false));
   }
 
   function loadOfficialEmbed(event: FormEvent<HTMLFormElement>) {
@@ -113,19 +131,28 @@ export default function AdultDiscoveryHub() {
       <form className="adult-search" onSubmit={searchWeb}>
         <span className="adult-search-icon">⌕</span>
         <input aria-label="Search adult content" value={query} onChange={(e) => { setQuery(e.target.value); setNotice(""); }} placeholder="Search title, genre, creator, or keyword…" maxLength={160} />
-        <button type="submit">Search ↗</button>
+        <button type="submit">{searching ? "Searching…" : "Search open videos ↗"}</button>
       </form>
-      <p className="adult-search-note">Enter a keyword to prepare a title search. Provider cards remain visible below; live title results require authorized provider APIs.</p>
+      <p className="adult-search-note">Search all video topics through PeerTube. Results are filtered to open licences; licence terms still apply.</p>
       <section className="adult-embed-panel"><p className="adult-kicker">IN-SITE PLAYER</p><h2>Play an official embed</h2><p>Paste an official Pornhub embed URL. Only HTTPS embed URLs from Pornhub are accepted.</p><form className="adult-search adult-embed-form" onSubmit={loadOfficialEmbed}><input aria-label="Official video embed URL" value={embedInput} onChange={(e) => setEmbedInput(e.target.value)} placeholder="https://www.pornhub.com/embed/VIDEO_ID" maxLength={500} /><button type="submit">Load player ↗</button></form>{activeEmbed && <div className="adult-player-wrap"><iframe title="Official embedded video" src={activeEmbed} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen /><p>Provider restrictions, regional availability, and embed settings still apply.</p></div>}</section>
       <div className="adult-category-row">{categories.map((item) => <button key={item.id} className={category === item.id ? "adult-category active" : "adult-category"} onClick={() => { setCategory(item.id); setQuery(""); setNotice(""); }}><strong>{item.label}</strong><small>{item.description}</small></button>)}</div>
     </section>
 
+    {openVideos.length > 0 && <section className="adult-directory">
+      <div className="adult-section-heading"><div><p className="adult-kicker">OPEN-LICENCE RESULTS</p><h2>Videos matching “{query}”</h2><p>Results are hosted by PeerTube creators, not Soul Studio. Reuse only according to each video's licence.</p></div><span className="adult-count">{openVideos.length} VIDEOS</span></div>
+      <div className="adult-source-grid">{openVideos.map((video) => <article className="adult-source-card" key={video.id}>
+        {video.thumbnailUrl && <a href={video.url} target="_blank" rel="noopener noreferrer"><img src={video.thumbnailUrl} alt="" loading="lazy" style={{width:"100%",aspectRatio:"16 / 9",objectFit:"cover",borderRadius:12}} /></a>}
+        <h3>{video.title}</h3><p>{video.description || "No description supplied."}</p><div className="adult-tags"><span>{video.licence}</span><span>{video.channel}</span></div>
+        <a href={video.url} target="_blank" rel="noopener noreferrer">Watch at source <span>↗</span></a>
+        {video.embedUrl && <button className="adult-primary" type="button" onClick={() => { setActiveEmbed(video.embedUrl || ""); setNotice("Video loaded from its original PeerTube host."); }}>Play in Soul Studio</button>}
+      </article>)}</div>
+    </section>}
     <section className="adult-directory">
       <div className="adult-section-heading"><div><p className="adult-kicker">CURATED DIRECTORY</p><h2>{category === "all" ? "Explore sources" : categories.find((item) => item.id === category)?.label}</h2><p>Official destination links. Check each provider’s rules, age restrictions, and regional availability.</p></div><span className="adult-count">{visibleSources.length} SOURCES</span></div>
       {visibleSources.length ? <div className="adult-source-grid">{visibleSources.map((source) => <article className="adult-source-card" key={source.name}><div className="adult-source-top"><span className="adult-source-symbol">{source.kind === "video" ? "▶" : source.kind === "manga" ? "▤" : source.kind === "hentai" ? "✧" : "◎"}</span><span className="adult-source-kind">{source.kind === "video" ? "VIDEO" : source.kind === "manga" ? "MANGA" : source.kind === "hentai" ? "HENTAI" : "CREATORS"}</span></div><h3>{source.name}</h3><p>{source.description}</p><div className="adult-tags">{source.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div><a href={source.url} target="_blank" rel="noopener noreferrer">Visit official site <span>↗</span></a></article>)}</div> : <div className="adult-empty"><h3>No directory matches</h3><p>Try a broader keyword or choose another category. Results are filtered locally on Soul Studio.</p></div>}
     </section>
 
-    <section className="adult-disclaimer"><strong>Use responsibly.</strong> Soul Studio currently provides an in-site source catalogue, not a universal video feed. Video playback and manga reading require authorized provider APIs, feeds, or embeds. Do not seek or share content involving minors, non-consensual acts, hidden-camera material, or copyright infringement. Report broken or inappropriate links to the site owner.</section>
+    <section className="adult-disclaimer"><strong>Use responsibly.</strong> Soul Studio currently provides an in-site source catalogue, not a universal video feed. Open video search uses PeerTube’s API and shows videos with reuse-friendly licences; check the individual licence and attribution requirements. Other media sources still require authorized provider APIs, feeds, or embeds. Do not seek or share content involving minors, non-consensual acts, hidden-camera material, or copyright infringement. Report broken or inappropriate links to the site owner.</section>
     {notice && <p className="adult-notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message">×</button></p>}
     <footer className="adult-footer"><span>SOUL STUDIO AFTER DARK</span><span>18+ · External links · No media hosted here</span><button onClick={() => setAgeConfirmed(false)}>Exit adult section</button></footer>
   </main>;
