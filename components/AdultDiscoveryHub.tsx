@@ -48,14 +48,16 @@ export default function AdultDiscoveryHub() {
   const [embedInput, setEmbedInput] = useState("");
   const [activeEmbed, setActiveEmbed] = useState("");
 
+  // Keep provider cards visible while a title/creator query is entered.
+  // This directory has no provider catalogue API yet, so a title query must not
+  // incorrectly hide every source card.
   const visibleSources = useMemo(() => {
-    const q = query.trim().toLowerCase();
     return sources.filter((source) => {
-      const matchesKind = category === "all" || source.kind === category || (category === "creator" && ["video", "hentai", "manga"].includes(source.kind));
-      const matchesQuery = !q || [source.name, source.description, ...source.tags].join(" ").toLowerCase().includes(q);
-      return matchesKind && matchesQuery;
+      if (category === "all") return true;
+      if (category === "creator") return source.kind === "creator" || source.tags.includes("creator");
+      return source.kind === category;
     });
-  }, [category, query]);
+  }, [category]);
 
   function searchWeb(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,7 +65,7 @@ export default function AdultDiscoveryHub() {
       setNotice("Enter a title, genre, creator, or provider name to filter the catalogue.");
       return;
     }
-    setNotice("Showing matching catalogue entries below. Direct video playback requires each provider's authorized API or embed support; this directory does not copy third-party videos.");
+    setNotice("Your keyword is ready, and matching provider categories are shown below. Soul Studio does not yet have authorized live title-search feeds, so it cannot return actual videos or manga titles from this keyword yet.");
   }
 
   function loadOfficialEmbed(event: FormEvent<HTMLFormElement>) {
@@ -113,7 +115,7 @@ export default function AdultDiscoveryHub() {
         <input aria-label="Search adult content" value={query} onChange={(e) => { setQuery(e.target.value); setNotice(""); }} placeholder="Search title, genre, creator, or keyword…" maxLength={160} />
         <button type="submit">Search ↗</button>
       </form>
-      <p className="adult-search-note">This search filters listed sources; it does not search every third-party title. A full searchable feed requires an authorized provider API.</p>
+      <p className="adult-search-note">Enter a keyword to prepare a title search. Provider cards remain visible below; live title results require authorized provider APIs.</p>
       <section className="adult-embed-panel"><p className="adult-kicker">IN-SITE PLAYER</p><h2>Play an official embed</h2><p>Paste an official Pornhub embed URL. Only HTTPS embed URLs from Pornhub are accepted.</p><form className="adult-search adult-embed-form" onSubmit={loadOfficialEmbed}><input aria-label="Official video embed URL" value={embedInput} onChange={(e) => setEmbedInput(e.target.value)} placeholder="https://www.pornhub.com/embed/VIDEO_ID" maxLength={500} /><button type="submit">Load player ↗</button></form>{activeEmbed && <div className="adult-player-wrap"><iframe title="Official embedded video" src={activeEmbed} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen /><p>Provider restrictions, regional availability, and embed settings still apply.</p></div>}</section>
       <div className="adult-category-row">{categories.map((item) => <button key={item.id} className={category === item.id ? "adult-category active" : "adult-category"} onClick={() => { setCategory(item.id); setQuery(""); setNotice(""); }}><strong>{item.label}</strong><small>{item.description}</small></button>)}</div>
     </section>
