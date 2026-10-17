@@ -19,6 +19,17 @@ const sources: Source[] = [
   { name: "Irodori Comics", kind: "manga", description: "Official English releases of independently published manga.", url: "https://irodoricomics.com/", tags: ["licensed", "english", "manga"] },
   { name: "JAST USA", kind: "hentai", description: "Publisher of adult visual novels and related digital titles.", url: "https://jastusa.com/", tags: ["publisher", "visual novels", "games"] },
   { name: "BOOK☆WALKER", kind: "manga", description: "Digital manga and light-novel store; catalogue and age restrictions vary.", url: "https://global.bookwalker.jp/", tags: ["store", "manga", "ebooks"] },
+  { name: "OnlyFans", kind: "creator", description: "Subscription platform where creators publish and sell content.", url: "https://onlyfans.com/", tags: ["creator", "subscriptions", "official"] },
+  { name: "Fansly", kind: "creator", description: "Creator subscription platform with creator-controlled access.", url: "https://fansly.com/", tags: ["creator", "subscriptions", "official"] },
+  { name: "JustFor.fans", kind: "creator", description: "Creator platform for subscription and paid media.", url: "https://justfor.fans/", tags: ["creator", "subscriptions", "paid content"] },
+  { name: "Clips4Sale", kind: "creator", description: "Marketplace for creator-published clips and digital media.", url: "https://www.clips4sale.com/", tags: ["creator", "marketplace", "clips"] },
+  { name: "Adulttime", kind: "video", description: "Subscription adult video service; access and catalogue depend on region.", url: "https://www.adulttime.com/", tags: ["video", "subscription", "studio"] },
+  { name: "Brazzers", kind: "video", description: "Adult video studio and subscription catalogue.", url: "https://www.brazzers.com/", tags: ["video", "studio", "subscription"] },
+  { name: "Reality Kings", kind: "video", description: "Adult video studio catalogue and subscription service.", url: "https://www.realitykings.com/", tags: ["video", "studio", "subscription"] },
+  { name: "BangBros", kind: "video", description: "Adult video studio network; availability may vary.", url: "https://www.bangbros.com/", tags: ["video", "studio", "clips"] },
+  { name: "MangaGamer", kind: "hentai", description: "Publisher and store for visual novels, including mature titles.", url: "https://www.mangagamer.com/", tags: ["publisher", "visual novels", "games"] },
+  { name: "Denpasoft", kind: "hentai", description: "Official digital store for visual novels and adult games.", url: "https://denpasoft.com/", tags: ["publisher", "visual novels", "games"] },
+  { name: "MangaPlaza", kind: "manga", description: "Official digital manga platform; titles and age access vary.", url: "https://mangaplaza.com/", tags: ["licensed", "manga", "ebooks"] },
 ];
 
 const categories: { id: Kind; label: string; description: string }[] = [
