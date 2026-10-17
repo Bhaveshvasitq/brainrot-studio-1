@@ -29,7 +29,6 @@ export default function AdultDiscoveryHub() {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [category, setCategory] = useState<Kind>("all");
   const [query, setQuery] = useState("");
-  const [searchEngine, setSearchEngine] = useState<"google" | "bing">("google");
   const [notice, setNotice] = useState("");
 
   const visibleSources = useMemo(() => {
@@ -43,27 +42,11 @@ export default function AdultDiscoveryHub() {
 
   function searchWeb(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const term = query.trim();
-    if (!term) {
-      setNotice("Enter a title, genre, creator, or keyword to search.");
+    if (!query.trim()) {
+      setNotice("Enter a title, genre, creator, or provider name to filter the catalogue.");
       return;
     }
-    const domains = category === "video"
-      ? ["pornhub.com", "xvideos.com", "xhamster.com"]
-      : category === "hentai"
-        ? ["dlsite.com", "jastusa.com"]
-        : category === "manga"
-          ? ["fakku.net", "dlsite.com", "irodoricomics.com", "global.bookwalker.jp"]
-          : category === "creator"
-            ? ["pornhub.com", "xvideos.com", "xhamster.com", "dlsite.com", "jastusa.com"]
-            : ["pornhub.com", "xvideos.com", "xhamster.com", "fakku.net", "dlsite.com", "irodoricomics.com", "jastusa.com", "global.bookwalker.jp"];
-    const domainQuery = domains.map((domain) => "site:" + domain).join(" OR ");
-    const searchQuery = term + " (" + domainQuery + ")";
-    const url = searchEngine === "google"
-      ? "https://www.google.com/search?q=" + encodeURIComponent(searchQuery)
-      : "https://www.bing.com/search?q=" + encodeURIComponent(searchQuery);
-    window.open(url, "_blank", "noopener,noreferrer");
-    setNotice("Opened a multi-source search limited to selected provider domains. Results and access depend on each provider, search indexing, and your region.");
+    setNotice("Showing matching catalogue entries below. Direct video playback requires each provider's authorized API or embed support; this directory does not copy third-party videos.");
   }
 
   if (!ageConfirmed) {
@@ -89,23 +72,22 @@ export default function AdultDiscoveryHub() {
     <section className="adult-hero">
       <p className="adult-kicker">ONE SEARCH · MULTIPLE SOURCES</p>
       <h1>Find your next <em>rabbit hole.</em></h1>
-      <p className="adult-lead">Explore adult video platforms, hentai, mature manga, and creator publishers from one simple directory.</p>
+      <p className="adult-lead">Search the directory and browse matching sources here. In-site playback can be added for providers that authorize video feeds or embeds.</p>
       <form className="adult-search" onSubmit={searchWeb}>
         <span className="adult-search-icon">⌕</span>
         <input aria-label="Search adult content" value={query} onChange={(e) => { setQuery(e.target.value); setNotice(""); }} placeholder="Search title, genre, creator, or keyword…" maxLength={160} />
-        <select aria-label="Search engine" value={searchEngine} onChange={(e) => setSearchEngine(e.target.value as "google" | "bing")}><option value="google">Google</option><option value="bing">Bing</option></select>
         <button type="submit">Search ↗</button>
       </form>
-      <p className="adult-search-note">Search opens an external search engine; Soul Studio does not scrape or store third-party media.</p>
+      <p className="adult-search-note">Search results stay on Soul Studio and filter the catalogue below. Video feeds require provider-authorized integrations.</p>
       <div className="adult-category-row">{categories.map((item) => <button key={item.id} className={category === item.id ? "adult-category active" : "adult-category"} onClick={() => setCategory(item.id)}><strong>{item.label}</strong><small>{item.description}</small></button>)}</div>
     </section>
 
     <section className="adult-directory">
       <div className="adult-section-heading"><div><p className="adult-kicker">CURATED DIRECTORY</p><h2>{category === "all" ? "Explore sources" : categories.find((item) => item.id === category)?.label}</h2><p>Official destination links. Check each provider’s rules, age restrictions, and regional availability.</p></div><span className="adult-count">{visibleSources.length} SOURCES</span></div>
-      {visibleSources.length ? <div className="adult-source-grid">{visibleSources.map((source) => <article className="adult-source-card" key={source.name}><div className="adult-source-top"><span className="adult-source-symbol">{source.kind === "video" ? "▶" : source.kind === "manga" ? "▤" : source.kind === "hentai" ? "✧" : "◎"}</span><span className="adult-source-kind">{source.kind === "video" ? "VIDEO" : source.kind === "manga" ? "MANGA" : source.kind === "hentai" ? "HENTAI" : "CREATORS"}</span></div><h3>{source.name}</h3><p>{source.description}</p><div className="adult-tags">{source.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div><a href={source.url} target="_blank" rel="noopener noreferrer">Visit official site <span>↗</span></a></article>)}</div> : <div className="adult-empty"><h3>No directory matches</h3><p>Try a broader keyword or choose another category. Use Search to search the wider web.</p></div>}
+      {visibleSources.length ? <div className="adult-source-grid">{visibleSources.map((source) => <article className="adult-source-card" key={source.name}><div className="adult-source-top"><span className="adult-source-symbol">{source.kind === "video" ? "▶" : source.kind === "manga" ? "▤" : source.kind === "hentai" ? "✧" : "◎"}</span><span className="adult-source-kind">{source.kind === "video" ? "VIDEO" : source.kind === "manga" ? "MANGA" : source.kind === "hentai" ? "HENTAI" : "CREATORS"}</span></div><h3>{source.name}</h3><p>{source.description}</p><div className="adult-tags">{source.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div><a href={source.url} target="_blank" rel="noopener noreferrer">Visit official site <span>↗</span></a></article>)}</div> : <div className="adult-empty"><h3>No directory matches</h3><p>Try a broader keyword or choose another category. Results are filtered locally on Soul Studio.</p></div>}
     </section>
 
-    <section className="adult-disclaimer"><strong>Use responsibly.</strong> Soul Studio is a link directory, not a host or endorsement of third-party content. Do not seek or share content involving minors, non-consensual acts, hidden-camera material, or copyright infringement. Report broken or inappropriate links to the site owner.</section>
+    <section className="adult-disclaimer"><strong>Use responsibly.</strong> Soul Studio currently provides an in-site source catalogue, not a universal video feed. Video playback and manga reading require authorized provider APIs, feeds, or embeds. Do not seek or share content involving minors, non-consensual acts, hidden-camera material, or copyright infringement. Report broken or inappropriate links to the site owner.</section>
     {notice && <p className="adult-notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message">×</button></p>}
     <footer className="adult-footer"><span>SOUL STUDIO AFTER DARK</span><span>18+ · External links · No media hosted here</span><button onClick={() => setAgeConfirmed(false)}>Exit adult section</button></footer>
   </main>;
