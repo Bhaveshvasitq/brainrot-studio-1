@@ -14,11 +14,12 @@ const tools: { id: Feature; title: string; subtitle: string; icon: string }[] = 
 
 export default function MediaStudioPage() {
   const [feature, setFeature] = useState<Feature>('image');
+  const [sceneMode, setSceneMode] = useState('Romantic');
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
-  const [status, setStatus] = useState('Paid generation is disabled until approval, age verification and budget controls are configured.');
+  const [status, setStatus] = useState('Adult creative mode is preview-only until Wiro credentials, verified adult access and spending controls are configured.');
   const [reportText, setReportText] = useState('');
   const [reportStatus, setReportStatus] = useState('');
 
@@ -83,8 +84,8 @@ export default function MediaStudioPage() {
   const activeTool = tools.find(item => item.id === feature)!;
   const placeholder = feature === 'chat' ? 'Write a message to start your conversation…'
     : feature === 'voice' ? 'Type the words you want your character to say…'
-    : feature === 'image' ? 'A cinematic anime portrait of a fictional adult character, moonlit room, detailed cel shading, expressive eyes, beautiful lighting…'
-    : 'A short cinematic anime scene with fictional adult characters, gentle camera movement, moonlit atmosphere…';
+    : feature === 'image' ? 'A tasteful, sensual cinematic portrait of a clearly adult fictional character, elegant styling, expressive eyes, soft moonlight, detailed art direction…'
+    : 'A romantic cinematic scene with clearly adult fictional characters, mutual affection, elegant styling, gentle camera movement, moonlit atmosphere…';
 
   return (
     <main style={{ minHeight: '100vh', background: '#0b0912', color: '#f8f5ff', padding: '0 0 56px', fontFamily: 'Inter,ui-sans-serif,system-ui,-apple-system,sans-serif' }}>
@@ -151,10 +152,10 @@ export default function MediaStudioPage() {
         <header className="studio-hero">
           <span className="studio-kicker">✧ Your creative universe</span>
           <h1>Imagine it.<br /><span>Bring it to Soul.</span></h1>
-          <p>One creative space for companion conversations, anime-inspired artwork, character voices and cinematic short videos.</p>
+          <p>An adults-only creative space for fictional adult characters, romantic roleplay, sensual glamour portraits, character voices and cinematic scenes. All characters must be clearly 18+ and consenting.</p>
           <div className="studio-status">
             <i className="studio-status-dot" />
-            <div><strong>Preview mode · Generation currently off</strong><span>{status} Your creative workspace is available to explore, but generation remains locked until setup is verified.</span></div>
+            <div><strong>18+ creative mode · Preview only</strong><span>{status} Only fictional adults aged 18 or older. Non-consensual imagery, sexual depictions of real people, minors and youth-coded characters are prohibited. Graphic sexual generation is not enabled.</span></div>
           </div>
         </header>
 
@@ -168,23 +169,24 @@ export default function MediaStudioPage() {
         </div>
 
         <div className="studio-section-head">
-          <div><h2>Create something new</h2><p>Describe your idea, refine the prompt, and preview the workspace. No generation requests are sent while preview mode is active.</p></div>
+          <div><h2>Create something new</h2><p>Choose a mood, describe your fictional adult characters, and preview the result. Provider requests remain disabled until Wiro setup, adult-access verification and spending controls are ready.</p></div>
         </div>
         <div className="studio-workspace">
           <section className="studio-panel">
             <div className="studio-panel-title"><span className="studio-panel-title-icon">{activeTool.icon}</span><div><h3>{activeTool.title}</h3><p>{activeTool.subtitle}</p></div></div>
             <label className="studio-label" htmlFor="studio-prompt">{feature === 'voice' ? 'Your script' : feature === 'chat' ? 'Your message' : 'Describe your scene'}</label>
             <textarea id="studio-prompt" className="studio-prompt" value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={feature === 'video' ? 3000 : 4000} placeholder={placeholder} />
+            {(feature === 'image' || feature === 'video' || feature === 'chat') && <div style={{ marginTop: 14 }}><label className="studio-label" htmlFor="scene-mode">Creative mood</label><select id="scene-mode" value={sceneMode} onChange={e => setSceneMode(e.target.value)} style={{ width: '100%', border: '1px solid #ffffff1c', borderRadius: 12, padding: '12px 13px', background: '#0c0913', color: '#f8f5ff', font: 'inherit', fontSize: 12 }}><option>Romantic</option><option>Glamour</option><option>Fantasy</option><option>Flirty</option><option>Cozy</option><option>Cinematic</option><option>Anime</option></select><p className="studio-safety" style={{ marginTop: 7 }}>Mood selection is a prompt aid only; it does not bypass model or provider safety rules.</p></div>}
             <div className="studio-hint"><span>{feature === 'image' ? 'Tip: mention art style, lighting and mood.' : feature === 'video' ? 'Tip: describe the scene and camera movement.' : feature === 'voice' ? 'Tip: use punctuation to shape delivery.' : 'Tip: tell your companion the tone you prefer.'}</span><span>{prompt.length}/{feature === 'video' ? 3000 : 4000}</span></div>
-            <button className="studio-generate" disabled title="Generation is paused until the provider, safety checks and budget controls are approved."><span>✦</span>Generation paused · Preview only</button>
+            <button className="studio-generate" disabled title="Generation is paused until Wiro is configured, adult access is verified, and spending controls are approved."><span>✦</span>18+ studio · Generation paused</button>
             {error && <div role="alert" className="studio-error">{error}</div>}
-            <p className="studio-safety">Fictional adult characters only for adult media. No minors or youth-coded characters, sexual imagery of identifiable real people, non-consensual content or sexual violence. AI outputs may be imperfect.</p>
+            <p className="studio-safety">Adults only (18+). Use fictional adult characters and consensual, non-graphic romantic or sensual concepts. No minors or youth-coded characters, sexual depictions of identifiable real people, non-consensual intimate imagery, sexual violence or bestiality. AI outputs may be imperfect. Wiro image generation will only be enabled after credentials and cost controls are configured.</p>
           </section>
 
           <section className="studio-panel">
             <div className="studio-panel-title"><span className="studio-panel-title-icon">◈</span><div><h3>Preview canvas</h3><p>Your output will appear here</p></div></div>
             <div className="studio-preview">
-              {!result && <><div className="studio-preview-symbol">{activeTool.icon}</div><h4>Your next idea starts here</h4><p>This canvas is a design preview. Provider requests remain disabled until safety checks, age verification, and spending controls are approved.</p></>}
+              {!result && <><div className="studio-preview-symbol">{activeTool.icon}</div><h4>Your next idea starts here</h4><p>This is a design preview for {sceneMode.toLowerCase()} adult-fiction concepts. Provider requests remain disabled until Wiro credentials, verified adult access, safety checks and spending controls are approved.</p></>}
               {result && <div style={{ width: '100%' }}>
                 {result.reply && <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: '#f3eafa', textAlign: 'left' }}>{result.reply}</p>}
                 {Array.isArray(result.images) && result.images.map((image: any, index: number) => image.url ? <img className="studio-result" key={image.url || index} src={image.url} alt="AI-generated fictional character" /> : null)}
