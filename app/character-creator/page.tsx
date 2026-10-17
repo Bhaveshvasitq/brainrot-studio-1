@@ -6,7 +6,7 @@ const hair=['Midnight black','Chocolate brown','Silver ash','Platinum blonde','R
 const eyes=['Hazel','Ocean blue','Emerald','Warm brown','Silver grey','Violet'];
 const steps=['Style','Appearance','Personality','Review'];
 export default function CharacterCreatorPage(){
- const [step,S]=useState(0),[name,N]=useState('Your Soul'),[style,T]=useState('Realistic'),[gender,G]=useState('Female'),[age,A]=useState('25'),[mood,M]=useState('Romantic'),[skin,K=useState(skins[1]),[hairColor,H]=useState(hair[0]),[eyeColor,E]=useState(eyes[0]),[body,B]=useState('Athletic'),[personality,P]=useState(['Gentle','Witty']),[description,D]=useState('A warm, curious soul who makes every conversation feel special.'),[saved,V]=useState(false);
+ const [step,S]=useState(0),[name,N]=useState('Your Soul'),[style,T]=useState('Realistic'),[gender,G]=useState('Female'),[age,A]=useState('25'),[mood,M]=useState('Romantic'),[skin,K]=useState(skins[1]),[hairColor,H]=useState(hair[0]),[eyeColor,E]=useState(eyes[0]),[body,B]=useState('Athletic'),[personality,P]=useState(['Gentle','Witty']),[description,D]=useState('A warm, curious soul who makes every conversation feel special.'),[saved,V]=useState(false);
  const dark={background:'#100e15',color:'#f8f4fb',border:'1px solid #ffffff20',borderRadius:12,padding:'11px 13px',fontSize:12,cursor:'pointer'} as const;
  const label={display:'block',fontSize:11,letterSpacing:'.1em',textTransform:'uppercase' as const,color:'#aa9fb5',fontWeight:800,marginBottom:12};
  const button=(active:boolean)=>({...dark,background:active?'#321a30':'#100e15',border:active?'1px solid #d96cac':'1px solid #ffffff20'});
