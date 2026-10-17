@@ -1,8 +1,7 @@
-import CompanionHub from '@/components/CompanionHub';
+import AdultDiscoveryHub from '@/components/AdultDiscoveryHub';
 
 export const dynamic = 'force-dynamic';
 
-// OwnDream.ai production entrypoint. Keep provider-dependent features optional.
 export default function Home() {
-  return <CompanionHub />;
+  return <AdultDiscoveryHub />;
 }
