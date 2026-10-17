@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 
 type Kind = "all" | "video" | "hentai" | "manga" | "creator";
 type Source = { name: string; kind: Exclude<Kind, "all">; description: string; url: string; tags: string[] };
@@ -47,12 +48,22 @@ export default function AdultDiscoveryHub() {
       setNotice("Enter a title, genre, creator, or keyword to search.");
       return;
     }
-    const typeLabel = category === "all" ? "adult content" : category === "video" ? "adult video" : category === "hentai" ? "hentai" : category === "manga" ? "adult manga" : "adult creators";
+    const domains = category === "video"
+      ? ["pornhub.com", "xvideos.com", "xhamster.com"]
+      : category === "hentai"
+        ? ["dlsite.com", "jastusa.com"]
+        : category === "manga"
+          ? ["fakku.net", "dlsite.com", "irodoricomics.com", "global.bookwalker.jp"]
+          : category === "creator"
+            ? ["pornhub.com", "xvideos.com", "xhamster.com", "dlsite.com", "jastusa.com"]
+            : ["pornhub.com", "xvideos.com", "xhamster.com", "fakku.net", "dlsite.com", "irodoricomics.com", "jastusa.com", "global.bookwalker.jp"];
+    const domainQuery = domains.map((domain) => "site:" + domain).join(" OR ");
+    const searchQuery = term + " (" + domainQuery + ")";
     const url = searchEngine === "google"
-      ? "https://www.google.com/search?q=" + encodeURIComponent(term + " " + typeLabel)
-      : "https://www.bing.com/search?q=" + encodeURIComponent(term + " " + typeLabel);
+      ? "https://www.google.com/search?q=" + encodeURIComponent(searchQuery)
+      : "https://www.bing.com/search?q=" + encodeURIComponent(searchQuery);
     window.open(url, "_blank", "noopener,noreferrer");
-    setNotice("Opened an external web search. Results and access depend on the search provider and your region.");
+    setNotice("Opened a multi-source search limited to selected provider domains. Results and access depend on each provider, search indexing, and your region.");
   }
 
   if (!ageConfirmed) {
