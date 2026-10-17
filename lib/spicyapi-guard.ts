@@ -50,29 +50,6 @@ function assertBudgetConfiguration() {
 }
 
 
-export async function reserveWiroSpend(userId: string, estimatedUsd: number) {
-  const limit = Number(env('WIRO_MONTHLY_SPEND_LIMIT_USD'));
-  const pilot = Number(env('WIRO_PILOT_SPEND_LIMIT_USD'));
-  if (!Number.isFinite(limit) || limit <= 0 || limit > 50) throw new Error('WIRO_SPEND_LIMIT_CONFIGURATION_INVALID');
-  if (!Number.isFinite(pilot) || pilot <= 0 || pilot > 10 || pilot > limit) throw new Error('WIRO_PILOT_LIMIT_CONFIGURATION_INVALID');
-  if (env('WIRO_SPEND_LEDGER_READY') !== 'true') throw new Error('WIRO_SPEND_LEDGER_NOT_READY');
-  if (env('WIRO_LIVE_CALLS_ENABLED') !== 'true' || !env('WIRO_PURCHASE_APPROVAL_ID') || !env('WIRO_API_KEY')) throw new Error('WIRO_PAID_PROVIDER_DISABLED');
-  if (!Number.isFinite(estimatedUsd) || estimatedUsd <= 0 || estimatedUsd > pilot) throw new Error('WIRO_REQUEST_EXCEEDS_PILOT_CAP');
-  const url = env('NEXT_PUBLIC_SUPABASE_URL');
-  const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !serviceKey) throw new Error('WIRO_SPEND_LEDGER_NOT_READY');
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await admin.rpc('reserve_spicyapi_usage', {
-    p_user_id: userId,
-    p_estimated_usd: Number(estimatedUsd.toFixed(6)),
-    p_monthly_limit_usd: limit,
-    p_pilot_limit_usd: pilot,
-    p_feature: 'image',
-  });
-  if (error || !data?.reservation_id) throw new Error('SPEND_LIMIT_REACHED_OR_LEDGER_UNAVAILABLE');
-  return String(data.reservation_id);
-}
-
 export async function reserveSpicySpend(userId: string, estimatedUsd: number, feature: 'chat' | 'image' | 'voice' | 'video') {
   const { limit, pilot } = assertBudgetConfiguration();
   if (!Number.isFinite(estimatedUsd) || estimatedUsd <= 0 || estimatedUsd > pilot) throw new Error('REQUEST_EXCEEDS_PILOT_CAP');
