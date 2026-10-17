@@ -30,6 +30,8 @@ export default function AdultDiscoveryHub() {
   const [category, setCategory] = useState<Kind>("all");
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
+  const [embedInput, setEmbedInput] = useState("");
+  const [activeEmbed, setActiveEmbed] = useState("");
 
   const visibleSources = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -47,6 +49,24 @@ export default function AdultDiscoveryHub() {
       return;
     }
     setNotice("Showing matching catalogue entries below. Direct video playback requires each provider's authorized API or embed support; this directory does not copy third-party videos.");
+  }
+
+  function loadOfficialEmbed(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      const parsed = new URL(embedInput.trim());
+      const hostOk = parsed.hostname === "www.pornhub.com" || parsed.hostname === "pornhub.com";
+      const id = parsed.pathname.slice(7).replace(/\/$/, "");
+      const idOk = /^[A-Za-z0-9_-]+$/.test(id);
+      if (parsed.protocol !== "https:" || !hostOk || !parsed.pathname.startsWith("/embed/") || !idOk) {
+        setNotice("Paste an official HTTPS Pornhub embed URL, not a regular watch-page link.");
+        return;
+      }
+      setActiveEmbed("https://www.pornhub.com/embed/" + id);
+      setNotice("Embed loaded. Playback and availability are controlled by the provider.");
+    } catch {
+      setNotice("That URL is invalid. Paste the official embed URL supplied by the provider.");
+    }
   }
 
   if (!ageConfirmed) {
@@ -72,13 +92,14 @@ export default function AdultDiscoveryHub() {
     <section className="adult-hero">
       <p className="adult-kicker">ONE SEARCH · MULTIPLE SOURCES</p>
       <h1>Find your next <em>rabbit hole.</em></h1>
-      <p className="adult-lead">Search the directory and browse matching sources here. In-site playback can be added for providers that authorize video feeds or embeds.</p>
+      <p className="adult-lead">Search the source directory, or play a video here when its provider supplies an official embeddable link.</p>
       <form className="adult-search" onSubmit={searchWeb}>
         <span className="adult-search-icon">⌕</span>
         <input aria-label="Search adult content" value={query} onChange={(e) => { setQuery(e.target.value); setNotice(""); }} placeholder="Search title, genre, creator, or keyword…" maxLength={160} />
         <button type="submit">Search ↗</button>
       </form>
-      <p className="adult-search-note">Search results stay on Soul Studio and filter the catalogue below. Video feeds require provider-authorized integrations.</p>
+      <p className="adult-search-note">This search filters listed sources; it does not search every third-party title. A full searchable feed requires an authorized provider API.</p>
+      <section className="adult-embed-panel"><p className="adult-kicker">IN-SITE PLAYER</p><h2>Play an official embed</h2><p>Paste an official Pornhub embed URL. Only HTTPS embed URLs from Pornhub are accepted.</p><form className="adult-search adult-embed-form" onSubmit={loadOfficialEmbed}><input aria-label="Official video embed URL" value={embedInput} onChange={(e) => setEmbedInput(e.target.value)} placeholder="https://www.pornhub.com/embed/VIDEO_ID" maxLength={500} /><button type="submit">Load player ↗</button></form>{activeEmbed && <div className="adult-player-wrap"><iframe title="Official embedded video" src={activeEmbed} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen /><p>Provider restrictions, regional availability, and embed settings still apply.</p></div>}</section>
       <div className="adult-category-row">{categories.map((item) => <button key={item.id} className={category === item.id ? "adult-category active" : "adult-category"} onClick={() => setCategory(item.id)}><strong>{item.label}</strong><small>{item.description}</small></button>)}</div>
     </section>
 
