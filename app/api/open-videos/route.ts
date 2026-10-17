@@ -29,76 +29,73 @@ export async function GET(request: NextRequest) {
   }
 
   const configuredHost = process.env.PEERTUBE_INSTANCE_URL || "https://peertube.tv";
-  let base: URL;
-  try {
-    base = new URL(configuredHost);
-  } catch {
-    return NextResponse.json({ error: "PEERTUBE_INSTANCE_URL is invalid." }, { status: 500 });
-  }
-  if (base.protocol !== "https:" || base.username || base.password) {
-    return NextResponse.json({ error: "PeerTube instance must be an HTTPS URL without credentials." }, { status: 500 });
-  }
-
-  const endpoint = new URL("/api/v1/search/videos", base);
-  endpoint.searchParams.set("search", query);
-  endpoint.searchParams.set("searchTarget", "local");
-  endpoint.searchParams.set("count", "20");
-  endpoint.searchParams.set("nsfw", "false");
-  endpoint.searchParams.set("licenceOneOf", [...allowedLicenceIds].join(","));
-  endpoint.searchParams.set("sort", "-publishedAt");
+  const hosts = [...new Set([configuredHost, "https://peer.tube"].filter(Boolean))];
 
   const fetchJson = async (url: URL) => {
     const response = await fetch(url, {
       headers: { Accept: "application/json" },
       next: { revalidate: 300 },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) return null;
     return await response.json() as { data?: PeerTubeVideo[] };
   };
 
   try {
-    // Try local catalogue search explicitly first; many instances disable global search indexes.
-    let payload = await fetchJson(endpoint);
+    for (const host of hosts) {
+      let base: URL;
+      try {
+        base = new URL(host);
+      } catch {
+        continue;
+      }
+      if (base.protocol !== "https:" || base.username || base.password) continue;
 
-    // Compatibility fallback for instances whose /search/videos endpoint is unavailable.
-    if (!payload) {
-      const fallback = new URL("/api/v1/videos", base);
-      fallback.searchParams.set("search", query);
-      fallback.searchParams.set("count", "20");
-      fallback.searchParams.set("nsfw", "false");
-      fallback.searchParams.set("licenceOneOf", [...allowedLicenceIds].join(","));
-      fallback.searchParams.set("sort", "-publishedAt");
-      payload = await fetchJson(fallback);
+      const endpoints = [
+        new URL("/api/v1/search/videos", base),
+        new URL("/api/v1/videos", base),
+      ];
+      endpoints[0].searchParams.set("searchTarget", "local");
+      for (const endpoint of endpoints) {
+        endpoint.searchParams.set("search", query);
+        endpoint.searchParams.set("count", "20");
+        endpoint.searchParams.set("nsfw", "false");
+        endpoint.searchParams.set("licenceOneOf", [...allowedLicenceIds].join(","));
+        endpoint.searchParams.set("sort", "-publishedAt");
+        try {
+          const payload = await fetchJson(endpoint);
+          if (!payload || !Array.isArray(payload.data)) continue;
+
+          const results = payload.data
+            .filter((video) => video && typeof video.name === "string" && allowedLicenceIds.has(Number(video.licence?.id)))
+            .map((video) => ({
+              id: video.uuid || String(video.id),
+              title: video.name,
+              description: (video.description || "").slice(0, 360),
+              url: video.url || (video.uuid ? new URL(`/videos/watch/${video.uuid}`, base).toString() : base.toString()),
+              embedUrl: video.embedPath ? new URL(video.embedPath, base).toString() : null,
+              thumbnailUrl: video.thumbnailPath ? new URL(video.thumbnailPath, base).toString() : null,
+              duration: video.duration ?? null,
+              views: video.views ?? null,
+              licence: video.licence?.label || "Open licence (verify source details)",
+              channel: video.channel?.name || "PeerTube creator",
+            }));
+
+          return NextResponse.json({ provider: "PeerTube", query, count: results.length, results });
+        } catch {
+          // Try the next endpoint or instance when a public instance is unavailable.
+        }
+      }
     }
 
-    if (!payload) {
-      return NextResponse.json({
-        results: [],
-        error: "The video catalogue is temporarily unavailable. Please try again shortly.",
-      }, { status: 502 });
-    }
-
-    const results = (Array.isArray(payload.data) ? payload.data : [])
-      .filter((video) => video && typeof video.name === "string" && allowedLicenceIds.has(Number(video.licence?.id)))
-      .map((video) => ({
-        id: video.uuid || String(video.id),
-        title: video.name,
-        description: (video.description || "").slice(0, 360),
-        url: video.url || (video.uuid ? new URL(`/videos/watch/${video.uuid}`, base).toString() : base.toString()),
-        embedUrl: video.embedPath ? new URL(video.embedPath, base).toString() : null,
-        thumbnailUrl: video.thumbnailPath ? new URL(video.thumbnailPath, base).toString() : null,
-        duration: video.duration ?? null,
-        views: video.views ?? null,
-        licence: video.licence?.label || "Open licence (verify source details)",
-        channel: video.channel?.name || "PeerTube creator",
-      }));
-
-    return NextResponse.json({ provider: "PeerTube", query, count: results.length, results });
+    return NextResponse.json({
+      results: [],
+      error: "The open-video catalogues are temporarily unavailable. Please try again shortly.",
+    }, { status: 502 });
   } catch {
     return NextResponse.json({
       results: [],
-      error: "Could not reach the video catalogue. Please try again later.",
+      error: "Could not reach the open-video catalogues. Please try again later.",
     }, { status: 502 });
   }
 }
